@@ -1,0 +1,43 @@
+version: '3'
+
+services:
+#    bot:
+#        build: .
+#        container_name: bot
+#        depends_on:
+#            - postgres
+#        networks:
+#            - steam_trade_network
+#        restart: unless-stopped
+#        env_file:
+#            - withdraw.dev.env
+#        entrypoint:
+#            - poetry
+#            - run
+#            - python3
+#            - bot.py
+    postgres:
+        image: postgres:13.3
+        environment:
+            POSTGRES_DB: "trade_bot"
+            POSTGRES_USER: "gaben"
+            POSTGRES_PASSWORD: "qwerty"
+            PGDATA: "/var/lib/postgresql/data/pgdata"
+        volumes:
+            - ./var/:/var/lib/postgresql/data
+        ports:
+            - "5432:5432"
+        healthcheck:
+            test: [ "CMD-SHELL", "pg_isready -U gaben -d trade_bot" ]
+            interval: 5s
+            timeout: 5s
+            retries: 15
+        restart: unless-stopped
+#        networks:
+#            - steam_trade_network
+        deploy:
+            resources:
+                limits:
+                    cpus: '1'
+                    memory: 1G
+
