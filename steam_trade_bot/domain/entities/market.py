@@ -8,13 +8,15 @@ from steam_trade_bot.type import CurrencyValue
 class Game:
     app_id: int
     name: str
-    publisher_fee: CurrencyValue
 
 
 @dataclass
 class MarketItem:
     app_id: int
     market_hash_name: str
+    market_fee: float | None
+    market_marketable_restriction: int | None
+    market_tradable_restriction: int | None
     commodity: bool
     item_name_id: int
 
@@ -23,6 +25,7 @@ class MarketItem:
 class MarketItemSellHistory:
     app_id: int
     market_hash_name: str
+    currency: int
     timestamp: datetime
     history: str
 

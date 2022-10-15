@@ -105,6 +105,7 @@ class MarketItemSellHistoryRepository(IMarketItemSellHistoryRepository):
                     [
                         market_item_sell_history_table.c.app_id,
                         market_item_sell_history_table.c.market_hash_name,
+                        market_item_sell_history_table.c.currency,
                         market_item_sell_history_table.c.timestamp,
                         market_item_sell_history_table.c.history,
                     ]

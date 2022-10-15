@@ -8,7 +8,7 @@ from sqlalchemy import (
     Boolean,
     ForeignKeyConstraint,
     UniqueConstraint,
-    Time,
+    DateTime,
     Float,
     BigInteger,
 )
@@ -20,7 +20,6 @@ game_table = Table(
     metadata,
     Column("app_id", Integer, primary_key=True),
     Column("name", String, nullable=False),
-    Column("publisher_fee", Float, nullable=False),
 )
 
 market_item_table = Table(
@@ -34,6 +33,9 @@ market_item_table = Table(
         primary_key=True,
     ),
     Column("market_hash_name", String, nullable=False, primary_key=True),
+    Column("market_fee", Float, nullable=True),
+    Column("market_marketable_restriction", Float, nullable=True),
+    Column("market_tradable_restriction", Float, nullable=True),
     Column("commodity", Boolean, nullable=False),
     Column("item_name_id", Integer, nullable=False),
     UniqueConstraint("app_id", "market_hash_name"),
@@ -44,9 +46,10 @@ market_item_sell_history_table = Table(
     metadata,
     Column("app_id", Integer, nullable=False, primary_key=True),
     Column("market_hash_name", String, nullable=False, primary_key=True),
-    Column("timestamp", Time, nullable=False),
+    Column("currency", Integer, ForeignKey("currency.id", ondelete="CASCADE"), nullable=False, primary_key=True),
+    Column("timestamp", DateTime(timezone=True), nullable=False),
     Column("history", String, nullable=False),
-    UniqueConstraint("app_id", "market_hash_name"),
+    UniqueConstraint("app_id", "market_hash_name", "currency"),
     ForeignKeyConstraint(
         ("app_id", "market_hash_name"),
         ["market_item.app_id", "market_item.market_hash_name"],

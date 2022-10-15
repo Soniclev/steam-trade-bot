@@ -4,7 +4,7 @@ from sqlalchemy import insert
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 
-from steam_trade_bot.infrastructure.models.market import metadata, game_table
+from steam_trade_bot.infrastructure.models.market import metadata, game_table, currency_table
 
 
 async def main():
@@ -23,7 +23,13 @@ async def main():
             result = await session.execute(
                 insert(game_table).values(),
                 [
-                    {"app_id": 730, "name": "CS:GO", "publisher_fee": 0.1},
+                    {"app_id": 730, "name": "CS:GO"},
+                ],
+            )
+            result = await session.execute(
+                insert(currency_table).values(),
+                [
+                    {"id": 1, "name": "USD"},
                 ],
             )
 

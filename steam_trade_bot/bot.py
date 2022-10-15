@@ -9,6 +9,8 @@ from sqlalchemy.orm import sessionmaker
 
 from steam_trade_bot.containers import Container
 from steam_trade_bot.domain.entities.market import Game, MarketItem
+from steam_trade_bot.domain.services.market_item_importer import MarketItemImporter
+from steam_trade_bot.domain.services.sell_history_analyzer import SellHistoryAnalyzer
 from steam_trade_bot.infrastructure.models.market import game_table
 from steam_trade_bot.infrastructure.repositories import GameRepository, MarketItemRepository
 from steam_trade_bot.settings import BotSettings
@@ -16,20 +18,17 @@ from steam_trade_bot.settings import BotSettings
 
 @inject
 async def main(
-    game_rep: GameRepository = Provide[Container.repositories.game],
-    item_rep: MarketItemRepository = Provide[Container.repositories.market_item],
-) -> None:
-    await game_rep.remove(app_id=570)
-    await game_rep.add(Game(app_id=570, name="Dota 2", publisher_fee=0.1))
-    print(await game_rep.get(app_id=570))
 
-    await item_rep.remove(app_id=570, market_hash_name="Recoil Case")
-    await item_rep.add(
-        MarketItem(
-            app_id=730, market_hash_name="Recoil Case", commodity=True, item_name_id=176321160
-        )
-    )
-    print(await item_rep.get(app_id=730, market_hash_name="Recoil Case"))
+        market_item_importer: MarketItemImporter = Provide[Container.services.market_item_importer],
+        sell_history_analyzer: SellHistoryAnalyzer = Provide[
+            Container.services.sell_history_analyzer],
+) -> None:
+    await sell_history_analyzer.analyze(app_id=730,
+                                        market_hash_name="Stockholm 2021 Mirage Souvenir Package",
+                                        expected_profit=0.05)
+
+    # await market_item_importer.import_item(app_id=730, market_hash_name="Prisma 2 Case")
+    # await market_item_importer.import_item(app_id=730, market_hash_name="Stockholm 2021 Mirage Souvenir Package")
 
 
 if __name__ == "__main__":
