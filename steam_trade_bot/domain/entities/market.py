@@ -31,6 +31,20 @@ class MarketItemSellHistory:
 
 
 @dataclass
+class SellHistoryAnalyzeResult:
+    app_id: int
+    market_hash_name: str
+    currency: int
+    timestamp: datetime
+    sells_last_day: int
+    sells_last_week: int
+    sells_last_month: int
+    recommended: bool
+    deviation: float | None
+    sell_order: CurrencyValue | None
+
+
+@dataclass
 class BuySellItem:
     account: str
     app_id: int

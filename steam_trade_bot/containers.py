@@ -7,8 +7,13 @@ from sqlalchemy.orm import sessionmaker
 
 from steam_trade_bot.domain.services.market_item_importer import MarketItemImporter
 from steam_trade_bot.domain.services.sell_history_analyzer import SellHistoryAnalyzer
-from steam_trade_bot.infrastructure.repositories import GameRepository, MarketItemRepository, \
-    MarketItemSellHistoryRepository
+from steam_trade_bot.domain.services.ste_export import STEExport
+from steam_trade_bot.infrastructure.repositories import (
+    GameRepository,
+    MarketItemRepository,
+    MarketItemSellHistoryRepository,
+    SellHistoryAnalyzeResultRepository,
+)
 
 
 class Database(containers.DeclarativeContainer):
@@ -44,20 +49,33 @@ class Repositories(containers.DeclarativeContainer):
         database.session,
     )
 
+    sell_history_analyze_result = providers.Singleton(
+        SellHistoryAnalyzeResultRepository,
+        database.session,
+    )
+
 
 class Services(containers.DeclarativeContainer):
     config = providers.Configuration()
     repositories = providers.DependenciesContainer()
 
+    sell_history_analyzer = providers.Singleton(
+        SellHistoryAnalyzer,
+        repositories.market_item_sell_history,
+    )
+
     market_item_importer = providers.Singleton(
         MarketItemImporter,
         repositories.market_item,
         repositories.market_item_sell_history,
+        repositories.sell_history_analyze_result,
+        sell_history_analyzer,
     )
 
-    sell_history_analyzer = providers.Singleton(
-        SellHistoryAnalyzer,
-        repositories.market_item_sell_history,
+    ste_export = providers.Singleton(
+        STEExport,
+        repositories.market_item,
+        repositories.sell_history_analyze_result,
     )
 
 

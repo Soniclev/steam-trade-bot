@@ -46,13 +46,44 @@ market_item_sell_history_table = Table(
     metadata,
     Column("app_id", Integer, nullable=False, primary_key=True),
     Column("market_hash_name", String, nullable=False, primary_key=True),
-    Column("currency", Integer, ForeignKey("currency.id", ondelete="CASCADE"), nullable=False, primary_key=True),
+    Column(
+        "currency",
+        Integer,
+        ForeignKey("currency.id", ondelete="CASCADE"),
+        nullable=False,
+        primary_key=True,
+    ),
     Column("timestamp", DateTime(timezone=True), nullable=False),
     Column("history", String, nullable=False),
     UniqueConstraint("app_id", "market_hash_name", "currency"),
     ForeignKeyConstraint(
         ("app_id", "market_hash_name"),
         ["market_item.app_id", "market_item.market_hash_name"],
+        ondelete="CASCADE",
+    ),
+)
+
+sell_history_analyze_result_table = Table(
+    "sell_history_analyze_result",
+    metadata,
+    Column("app_id", Integer, nullable=False, primary_key=True),
+    Column("market_hash_name", String, nullable=False, primary_key=True),
+    Column("currency", Integer, nullable=False, primary_key=True),
+    Column("timestamp", DateTime(timezone=True), nullable=False),
+    Column("sells_last_day", Integer, nullable=False),
+    Column("sells_last_week", Integer, nullable=False),
+    Column("sells_last_month", Integer, nullable=False),
+    Column("recommended", Boolean, nullable=False),
+    Column("deviation", Float, nullable=True),
+    Column("sell_order", Float, nullable=True),
+    UniqueConstraint("app_id", "market_hash_name", "currency"),
+    ForeignKeyConstraint(
+        ("app_id", "market_hash_name", "currency"),
+        [
+            "market_item_sell_history.app_id",
+            "market_item_sell_history.market_hash_name",
+            "market_item_sell_history.currency",
+        ],
         ondelete="CASCADE",
     ),
 )

@@ -1,6 +1,11 @@
 from abc import ABC, abstractmethod
 
-from steam_trade_bot.domain.entities.market import Game, MarketItem, MarketItemSellHistory
+from steam_trade_bot.domain.entities.market import (
+    Game,
+    MarketItem,
+    MarketItemSellHistory,
+    SellHistoryAnalyzeResult,
+)
 
 
 class IGameRepository(ABC):
@@ -37,9 +42,27 @@ class IMarketItemSellHistoryRepository(ABC):
         ...
 
     @abstractmethod
-    async def remove(self, app_id: int, market_hash_name: str):
+    async def remove(self, app_id: int, market_hash_name: str, currency: int):
         ...
 
     @abstractmethod
-    async def get(self, app_id: int, market_hash_name: str) -> MarketItemSellHistory | None:
+    async def get(
+        self, app_id: int, market_hash_name: str, currency: int
+    ) -> MarketItemSellHistory | None:
+        ...
+
+
+class ISellHistoryAnalyzeResultRepository(ABC):
+    @abstractmethod
+    async def add(self, item: SellHistoryAnalyzeResult):
+        ...
+
+    @abstractmethod
+    async def remove(self, app_id: int, market_hash_name: str, currency: int):
+        ...
+
+    @abstractmethod
+    async def get(
+        self, app_id: int, market_hash_name: str, currency: int
+    ) -> SellHistoryAnalyzeResult | None:
         ...

@@ -1,6 +1,10 @@
 import math
 from functools import lru_cache
 
+_VALVE_FEE = 5
+
+_DEFAULT_PUBLISHER_FEE = 10
+
 
 class SteamFee:
     @staticmethod
@@ -27,6 +31,6 @@ class SteamFee:
             fee = math.floor(price_ * perc_amount) / 100
             return max(round(fee, 2), 0.01)
 
-        game = _compute_fee(price, 10)
-        steam = _compute_fee(price, 5)
+        game = _compute_fee(price, _DEFAULT_PUBLISHER_FEE)
+        steam = _compute_fee(price, _VALVE_FEE)
         return round(price + game + steam, 2)

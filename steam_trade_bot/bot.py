@@ -1,4 +1,5 @@
 import asyncio
+from pathlib import Path
 from typing import Callable
 
 from dependency_injector.wiring import Provide, inject
@@ -11,6 +12,7 @@ from steam_trade_bot.containers import Container
 from steam_trade_bot.domain.entities.market import Game, MarketItem
 from steam_trade_bot.domain.services.market_item_importer import MarketItemImporter
 from steam_trade_bot.domain.services.sell_history_analyzer import SellHistoryAnalyzer
+from steam_trade_bot.domain.services.ste_export import STEExport
 from steam_trade_bot.infrastructure.models.market import game_table
 from steam_trade_bot.infrastructure.repositories import GameRepository, MarketItemRepository
 from steam_trade_bot.settings import BotSettings
@@ -18,17 +20,25 @@ from steam_trade_bot.settings import BotSettings
 
 @inject
 async def main(
-
-        market_item_importer: MarketItemImporter = Provide[Container.services.market_item_importer],
-        sell_history_analyzer: SellHistoryAnalyzer = Provide[
-            Container.services.sell_history_analyzer],
+    market_item_importer: MarketItemImporter = Provide[Container.services.market_item_importer],
+    sell_history_analyzer: SellHistoryAnalyzer = Provide[Container.services.sell_history_analyzer],
+    ste_export: STEExport = Provide[Container.services.ste_export],
 ) -> None:
-    await sell_history_analyzer.analyze(app_id=730,
-                                        market_hash_name="Stockholm 2021 Mirage Souvenir Package",
-                                        expected_profit=0.05)
+    pass
+    path = Path(
+        r"C:\Users\User\AppData\Local\Google\Chrome\User Data\Default\databases\chrome-extension_bkhnfcfghceoifdblnpcjhlmeibdmlaj_0\3"
+    )
+    await ste_export.export(path)
+    # await sell_history_analyzer.analyze(app_id=730,
+    #                                     market_hash_name="Stockholm 2021 Mirage Souvenir Package",
+    #                                     currency=1)
 
     # await market_item_importer.import_item(app_id=730, market_hash_name="Prisma 2 Case")
     # await market_item_importer.import_item(app_id=730, market_hash_name="Stockholm 2021 Mirage Souvenir Package")
+    # await market_item_importer.import_item(app_id=730, market_hash_name="★ Gut Knife | Bright Water (Factory New)")
+    # await market_item_importer.import_item(app_id=730, market_hash_name="★ Huntsman Knife | Ultraviolet (Field-Tested)")
+    # await market_item_importer.import_item(app_id=730, market_hash_name="Danger Zone Case")
+    # await market_item_importer.import_item(app_id=730, market_hash_name="Clutch Case")
 
 
 if __name__ == "__main__":
