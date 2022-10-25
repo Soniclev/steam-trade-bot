@@ -16,6 +16,15 @@ services:
 #            - run
 #            - python3
 #            - bot.py
+    redis:
+        image: redis:latest
+        restart: unless-stopped
+        command: redis-server --requirepass gabe
+        ports:
+            - "6379:6379"
+        healthcheck:
+            test: [ "CMD", "redis-cli", "--raw", "incr", "ping" ]
+
     postgres:
         image: postgres:13.3
         environment:

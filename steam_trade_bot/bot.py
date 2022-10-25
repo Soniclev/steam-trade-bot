@@ -25,14 +25,19 @@ async def main(
     ste_export: STEExport = Provide[Container.services.ste_export],
 ) -> None:
     pass
-    path = Path(
-        r"C:\Users\User\AppData\Local\Google\Chrome\User Data\Default\databases\chrome-extension_bkhnfcfghceoifdblnpcjhlmeibdmlaj_0\3"
-    )
-    await ste_export.export(path)
+    # path = Path(
+    #     r"C:\Users\User\AppData\Local\Google\Chrome\User Data\Default\databases\chrome-extension_bkhnfcfghceoifdblnpcjhlmeibdmlaj_0\3"
+    # )
+    # await ste_export.export(path)
     # await sell_history_analyzer.analyze(app_id=730,
     #                                     market_hash_name="Stockholm 2021 Mirage Souvenir Package",
     #                                     currency=1)
 
+    # await market_item_importer.import_items_from_url(
+    #     "https://steamcommunity.com/market/search/render/?query=&start=0&count=100&appid=730&search_descriptions=0&sort_column=name&sort_dir=asc&norender=1",
+    # )
+
+    await market_item_importer.import_from_db(app_id=730, currency=1)
     # await market_item_importer.import_item(app_id=730, market_hash_name="Prisma 2 Case")
     # await market_item_importer.import_item(app_id=730, market_hash_name="Stockholm 2021 Mirage Souvenir Package")
     # await market_item_importer.import_item(app_id=730, market_hash_name="★ Gut Knife | Bright Water (Factory New)")

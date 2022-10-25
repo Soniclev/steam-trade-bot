@@ -1,7 +1,6 @@
 from sqlalchemy import (
     Table,
     Column,
-    MetaData,
     Integer,
     String,
     ForeignKey,
@@ -10,21 +9,21 @@ from sqlalchemy import (
     UniqueConstraint,
     DateTime,
     Float,
-    BigInteger,
+    BigInteger, MetaData,
 )
 
-metadata = MetaData()
+market_metadata = MetaData()
 
 game_table = Table(
     "game",
-    metadata,
+    market_metadata,
     Column("app_id", Integer, primary_key=True),
     Column("name", String, nullable=False),
 )
 
 market_item_table = Table(
     "market_item",
-    metadata,
+    market_metadata,
     Column(
         "app_id",
         Integer,
@@ -33,17 +32,59 @@ market_item_table = Table(
         primary_key=True,
     ),
     Column("market_hash_name", String, nullable=False, primary_key=True),
-    Column("market_fee", Float, nullable=True),
+    Column("market_fee", String, nullable=True),
     Column("market_marketable_restriction", Float, nullable=True),
     Column("market_tradable_restriction", Float, nullable=True),
     Column("commodity", Boolean, nullable=False),
-    Column("item_name_id", Integer, nullable=False),
     UniqueConstraint("app_id", "market_hash_name"),
+)
+
+
+market_item_info_table = Table(
+    "market_item_info",
+    market_metadata,
+    Column("app_id", Integer, nullable=False, primary_key=True),
+    Column("market_hash_name", String, nullable=False, primary_key=True),
+    Column(
+        "currency",
+        Integer,
+        ForeignKey("currency.id", ondelete="CASCADE"),
+        nullable=False,
+        primary_key=True,
+    ),
+    Column("sell_listings", Integer, nullable=False),
+    Column("sell_price", Float, nullable=False),
+    UniqueConstraint("app_id", "market_hash_name", "currency"),
+    ForeignKeyConstraint(
+        ("app_id", "market_hash_name"),
+        ["market_item.app_id", "market_item.market_hash_name"],
+        ondelete="CASCADE",
+    ),
+)
+
+
+market_item_name_id_table = Table(
+    "market_item_name_id",
+    market_metadata,
+    Column(
+        "app_id",
+        Integer,
+        nullable=False,
+        primary_key=True,
+    ),
+    Column("market_hash_name", String, nullable=False, primary_key=True),
+    Column("item_name_id", Integer, nullable=True),
+    UniqueConstraint("app_id", "market_hash_name"),
+    ForeignKeyConstraint(
+        ("app_id", "market_hash_name"),
+        ["market_item.app_id", "market_item.market_hash_name"],
+        ondelete="CASCADE",
+    ),
 )
 
 market_item_sell_history_table = Table(
     "market_item_sell_history",
-    metadata,
+    market_metadata,
     Column("app_id", Integer, nullable=False, primary_key=True),
     Column("market_hash_name", String, nullable=False, primary_key=True),
     Column(
@@ -65,7 +106,7 @@ market_item_sell_history_table = Table(
 
 sell_history_analyze_result_table = Table(
     "sell_history_analyze_result",
-    metadata,
+    market_metadata,
     Column("app_id", Integer, nullable=False, primary_key=True),
     Column("market_hash_name", String, nullable=False, primary_key=True),
     Column("currency", Integer, nullable=False, primary_key=True),
@@ -90,14 +131,14 @@ sell_history_analyze_result_table = Table(
 
 currency_table = Table(
     "currency",
-    metadata,
+    market_metadata,
     Column("id", Integer, primary_key=True),
     Column("name", String, nullable=False),
 )
 
 account_table = Table(
     "account",
-    metadata,
+    market_metadata,
     Column("login", String, primary_key=True),
     Column("currency", Integer, ForeignKey("currency.id", ondelete="CASCADE"), nullable=False),
     Column("name", String, nullable=False),
@@ -108,7 +149,7 @@ account_table = Table(
 
 buy_sell_item_table = Table(
     "buy_sell_item",
-    metadata,
+    market_metadata,
     Column(
         "account",
         String,

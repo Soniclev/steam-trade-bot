@@ -14,10 +14,25 @@ class Game:
 class MarketItem:
     app_id: int
     market_hash_name: str
-    market_fee: float | None
+    market_fee: str | None
     market_marketable_restriction: int | None
     market_tradable_restriction: int | None
     commodity: bool
+
+
+@dataclass
+class MarketItemInfo:
+    app_id: int
+    market_hash_name: str
+    currency: int
+    sell_listings: int
+    sell_price: float
+
+
+@dataclass
+class MarketItemNameId:
+    app_id: int
+    market_hash_name: str
     item_name_id: int
 
 

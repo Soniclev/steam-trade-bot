@@ -3,8 +3,10 @@ import json
 import operator
 import statistics
 from datetime import datetime, timedelta
+from typing import Callable
 
-from steam_trade_bot.domain.entities.market import SellHistoryAnalyzeResult
+from steam_trade_bot.domain.entities.market import SellHistoryAnalyzeResult, MarketItemSellHistory
+from steam_trade_bot.domain.interfaces.unit_of_work import IUnitOfWork
 from steam_trade_bot.infrastructure.repositories import MarketItemSellHistoryRepository
 
 _MAX_FALL_DEVIATION = 0.05
@@ -18,6 +20,8 @@ _WINDOWS_SIZE = 15
 _MAX_DEVIATION = 0.06
 
 _MIN_SELLS_PER_WEEK = 10
+
+_QUANTILES_MIN_POINTS = 10
 
 
 def steam_date_str_to_datetime(s: str) -> datetime:
@@ -40,15 +44,12 @@ def window_slicing(k, iter_):
 
 
 class SellHistoryAnalyzer:
-    def __init__(self, market_item_sell_history_rep: MarketItemSellHistoryRepository):
-        self._market_item_sell_history_rep = market_item_sell_history_rep
+    def __init__(self, uow: Callable[..., IUnitOfWork]):
+        self._uow = uow
 
     async def analyze(
-        self, app_id: int, market_hash_name: str, currency: int
+        self, history: MarketItemSellHistory
     ) -> SellHistoryAnalyzeResult:
-        history = await self._market_item_sell_history_rep.get(
-            app_id=app_id, market_hash_name=market_hash_name, currency=currency
-        )
         j = json.loads(history.history)
 
         sells_last_day = 0
@@ -71,6 +72,20 @@ class SellHistoryAnalyzer:
                 break
             else:
                 to_process.append((dt, price, amount))
+
+        if len(to_process) < _QUANTILES_MIN_POINTS:
+            return SellHistoryAnalyzeResult(
+                app_id=history.app_id,
+                market_hash_name=history.market_hash_name,
+                currency=history.currency,
+                timestamp=history.timestamp,
+                sells_last_day=sells_last_day,
+                sells_last_week=sells_last_week,
+                sells_last_month=sells_last_month,
+                recommended=False,
+                deviation=None,
+                sell_order=None,
+            )
 
         to_process = list(reversed(to_process))
 
@@ -96,8 +111,8 @@ class SellHistoryAnalyzer:
         slices_mean_prices = tuple(slices_mean_prices)
         if len(slices_mean_prices) < 5:
             return SellHistoryAnalyzeResult(
-                app_id=app_id,
-                market_hash_name=market_hash_name,
+                app_id=history.app_id,
+                market_hash_name=history.market_hash_name,
                 currency=history.currency,
                 timestamp=history.timestamp,
                 sells_last_day=sells_last_day,
@@ -125,8 +140,8 @@ class SellHistoryAnalyzer:
         pass
 
         return SellHistoryAnalyzeResult(
-            app_id=app_id,
-            market_hash_name=market_hash_name,
+            app_id=history.app_id,
+            market_hash_name=history.market_hash_name,
             currency=history.currency,
             timestamp=history.timestamp,
             sells_last_day=sells_last_day,
