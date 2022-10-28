@@ -53,7 +53,8 @@ market_item_info_table = Table(
         primary_key=True,
     ),
     Column("sell_listings", Integer, nullable=False),
-    Column("sell_price", Float, nullable=False),
+    Column("sell_price", Float, nullable=True),
+    Column("sell_price_no_fee", Float, nullable=True),
     UniqueConstraint("app_id", "market_hash_name", "currency"),
     ForeignKeyConstraint(
         ("app_id", "market_hash_name"),
@@ -73,8 +74,35 @@ market_item_name_id_table = Table(
         primary_key=True,
     ),
     Column("market_hash_name", String, nullable=False, primary_key=True),
-    Column("item_name_id", Integer, nullable=True),
+    Column("item_name_id", Integer, nullable=False),
     UniqueConstraint("app_id", "market_hash_name"),
+    ForeignKeyConstraint(
+        ("app_id", "market_hash_name"),
+        ["market_item.app_id", "market_item.market_hash_name"],
+        ondelete="CASCADE",
+    ),
+)
+
+market_item_orders_table = Table(
+    "market_item_orders",
+    market_metadata,
+    Column("app_id", Integer, nullable=False, primary_key=True),
+    Column("market_hash_name", String, nullable=False, primary_key=True),
+    Column(
+        "currency",
+        Integer,
+        ForeignKey("currency.id", ondelete="CASCADE"),
+        nullable=False,
+        primary_key=True,
+    ),
+    Column("timestamp", DateTime(timezone=True), nullable=False),
+    Column("dump", String, nullable=False),
+    Column("buy_count", Integer, nullable=True),
+    Column("buy_order", Float, nullable=True),
+    Column("sell_count", Integer, nullable=True),
+    Column("sell_order", Float, nullable=True),
+    Column("sell_order_no_fee", Float, nullable=True),
+    UniqueConstraint("app_id", "market_hash_name", "currency"),
     ForeignKeyConstraint(
         ("app_id", "market_hash_name"),
         ["market_item.app_id", "market_item.market_hash_name"],
@@ -117,6 +145,7 @@ sell_history_analyze_result_table = Table(
     Column("recommended", Boolean, nullable=False),
     Column("deviation", Float, nullable=True),
     Column("sell_order", Float, nullable=True),
+    Column("sell_order_no_fee", Float, nullable=True),
     UniqueConstraint("app_id", "market_hash_name", "currency"),
     ForeignKeyConstraint(
         ("app_id", "market_hash_name", "currency"),

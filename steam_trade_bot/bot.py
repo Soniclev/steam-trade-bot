@@ -34,10 +34,16 @@ async def main(
     #                                     currency=1)
 
     # await market_item_importer.import_items_from_url(
-    #     "https://steamcommunity.com/market/search/render/?query=&start=0&count=100&appid=730&search_descriptions=0&sort_column=name&sort_dir=asc&norender=1",
+    #     "https://steamcommunity.com/market/search/render/?query=&start=0&count=100&appid=730&search_descriptions=0&sort_column=name&sort_dir=desc&norender=1",
     # )
 
-    await market_item_importer.import_from_db(app_id=730, currency=1)
+    # await market_item_importer.import_items_from_url(
+    #     "https://steamcommunity.com/market/search/render/?query=&start=0&count=100&search_descriptions=0&sort_column=quantity&sort_dir=asc&norender=1",
+    # )
+
+    await market_item_importer.import_from_all_games(currency=1)
+
+    # await market_item_importer.import_from_db(app_id=730, currency=1)
     # await market_item_importer.import_item(app_id=730, market_hash_name="Prisma 2 Case")
     # await market_item_importer.import_item(app_id=730, market_hash_name="Stockholm 2021 Mirage Souvenir Package")
     # await market_item_importer.import_item(app_id=730, market_hash_name="★ Gut Knife | Bright Water (Factory New)")

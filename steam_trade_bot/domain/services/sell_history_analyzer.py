@@ -7,6 +7,7 @@ from typing import Callable
 
 from steam_trade_bot.domain.entities.market import SellHistoryAnalyzeResult, MarketItemSellHistory
 from steam_trade_bot.domain.interfaces.unit_of_work import IUnitOfWork
+from steam_trade_bot.domain.steam_fee import SteamFee
 from steam_trade_bot.infrastructure.repositories import MarketItemSellHistoryRepository
 
 _MAX_FALL_DEVIATION = 0.05
@@ -85,6 +86,7 @@ class SellHistoryAnalyzer:
                 recommended=False,
                 deviation=None,
                 sell_order=None,
+                sell_order_no_fee=None,
             )
 
         to_process = list(reversed(to_process))
@@ -121,6 +123,7 @@ class SellHistoryAnalyzer:
                 recommended=False,
                 deviation=None,
                 sell_order=sell_order,
+                sell_order_no_fee=SteamFee.subtract_fee(sell_order),
             )
         mean_min = min(slices_mean_prices)
         mean_max = max(slices_mean_prices)
@@ -150,6 +153,7 @@ class SellHistoryAnalyzer:
             recommended=recommended,
             deviation=deviation,
             sell_order=sell_order,
+            sell_order_no_fee=SteamFee.subtract_fee(sell_order),
         )
 
         # sells_last_month = ...

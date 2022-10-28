@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from steam_trade_bot.domain.interfaces.unit_of_work import IUnitOfWork
 from steam_trade_bot.infrastructure.repositories import GameRepository, MarketItemInfoRepository, \
     MarketItemSellHistoryRepository, SellHistoryAnalyzeResultRepository, MarketItemRepository, \
-    MarketItemNameIdRepository
+    MarketItemNameIdRepository, MarketItemOrdersRepository
 
 
 class UnitOfWork(IUnitOfWork):
@@ -17,6 +17,7 @@ class UnitOfWork(IUnitOfWork):
         self._session = self._session_factory()
         self.game = GameRepository(self._session)
         self.market_item = MarketItemRepository(self._session)
+        self.market_item_orders = MarketItemOrdersRepository(self._session)
         self.market_item_info = MarketItemInfoRepository(self._session)
         self.market_item_name_id = MarketItemNameIdRepository(self._session)
         self.sell_history = MarketItemSellHistoryRepository(self._session)

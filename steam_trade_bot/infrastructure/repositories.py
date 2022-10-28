@@ -1,5 +1,4 @@
 from dataclasses import asdict
-from typing import Callable
 
 from sqlalchemy import delete, select
 from sqlalchemy.dialects.postgresql import insert
@@ -9,19 +8,21 @@ from steam_trade_bot.domain.entities.market import (
     Game,
     MarketItem,
     MarketItemSellHistory,
-    SellHistoryAnalyzeResult, MarketItemInfo, MarketItemNameId,
+    SellHistoryAnalyzeResult, MarketItemInfo, MarketItemNameId, MarketItemOrders,
 )
 from steam_trade_bot.domain.interfaces.repositories import (
     IGameRepository,
     IMarketItemRepository,
     IMarketItemSellHistoryRepository,
     ISellHistoryAnalyzeResultRepository, IMarketItemInfoRepository, IMarketItemNameIdRepository,
+    IMarketItemOrdersRepository,
 )
 from steam_trade_bot.infrastructure.models.market import (
     game_table,
     market_item_table,
     market_item_sell_history_table,
     sell_history_analyze_result_table, market_item_info_table, market_item_name_id_table,
+    market_item_orders_table,
 )
 
 
@@ -42,6 +43,11 @@ class GameRepository(IGameRepository):
             return Game(**row)
         else:
             return None
+
+    async def get_all(self) -> list[Game]:
+        result = await self._session.execute(select(game_table))
+        rows = result.fetchall()
+        return [Game(**row) for row in rows]
 
 
 class MarketItemInfoRepository(IMarketItemInfoRepository):
@@ -81,6 +87,7 @@ class MarketItemInfoRepository(IMarketItemInfoRepository):
                     market_item_info_table.c.currency,
                     market_item_info_table.c.sell_listings,
                     market_item_info_table.c.sell_price,
+                    market_item_info_table.c.sell_price_no_fee,
                 ]
             )
             .where(market_item_info_table.c.app_id == app_id)
@@ -102,6 +109,7 @@ class MarketItemInfoRepository(IMarketItemInfoRepository):
                     market_item_info_table.c.currency,
                     market_item_info_table.c.sell_listings,
                     market_item_info_table.c.sell_price,
+                    market_item_info_table.c.sell_price_no_fee,
                 ]
             )
             .where(market_item_info_table.c.app_id == app_id)
@@ -124,6 +132,21 @@ class MarketItemRepository(IMarketItemRepository):
             .values(asdict(item))
             .on_conflict_do_nothing(
                 constraint=market_item_table.primary_key,
+            )
+        )
+
+    async def add_or_update(self, item: MarketItem):
+        await self._session.execute(
+            insert(market_item_table)
+            .values(asdict(item))
+            .on_conflict_do_update(
+                constraint=market_item_table.primary_key,
+                set_={
+                    "market_fee": item.market_fee,
+                    "market_marketable_restriction": item.market_marketable_restriction,
+                    "market_tradable_restriction": item.market_tradable_restriction,
+                    "commodity": item.commodity,
+                }
             )
         )
 
@@ -171,6 +194,48 @@ class MarketItemRepository(IMarketItemRepository):
         )
         rows = result.fetchall()
         return [MarketItem(**row) for row in rows]
+
+
+class MarketItemOrdersRepository(IMarketItemOrdersRepository):
+    def __init__(self, session: AsyncSession):
+        self._session = session
+
+    async def add(self, item: MarketItemOrders):
+        await self._session.execute(insert(market_item_orders_table).values(asdict(item)))
+
+    async def remove(self, app_id: int, market_hash_name: str, currency: int):
+        await self._session.execute(
+            delete(market_item_orders_table)
+            .where(market_item_orders_table.c.app_id == app_id)
+            .where(market_item_orders_table.c.market_hash_name == market_hash_name)
+            .where(market_item_orders_table.c.currency == currency)
+        )
+    async def get(
+        self, app_id: int, market_hash_name: str, currency: int
+    ) -> MarketItemOrders | None:
+        result = await self._session.execute(
+            select(
+                [
+                   market_item_orders_table.c.app_id,
+                   market_item_orders_table.c.market_hash_name,
+                   market_item_orders_table.c.currency,
+                   market_item_orders_table.c.timestamp,
+                   market_item_orders_table.c.buy_count,
+                   market_item_orders_table.c.buy_order,
+                   market_item_orders_table.c.sell_count,
+                   market_item_orders_table.c.sell_order,
+                   market_item_orders_table.c.sell_order_no_fee,
+                ]
+            )
+            .where(market_item_orders_table.c.app_id == app_id)
+            .where(market_item_orders_table.c.market_hash_name == market_hash_name)
+            .where(market_item_orders_table.c.currency == currency)
+        )
+        row = result.fetchone()
+        if row:
+            return MarketItemOrders(**row)
+        else:
+            return None
 
 
 class MarketItemSellHistoryRepository(IMarketItemSellHistoryRepository):
@@ -278,6 +343,7 @@ class SellHistoryAnalyzeResultRepository(ISellHistoryAnalyzeResultRepository):
                     sell_history_analyze_result_table.c.recommended,
                     sell_history_analyze_result_table.c.deviation,
                     sell_history_analyze_result_table.c.sell_order,
+                    sell_history_analyze_result_table.c.sell_order_no_fee,
                 ]
             )
             .where(sell_history_analyze_result_table.c.app_id == app_id)

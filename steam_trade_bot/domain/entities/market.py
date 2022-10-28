@@ -26,7 +26,22 @@ class MarketItemInfo:
     market_hash_name: str
     currency: int
     sell_listings: int
-    sell_price: float
+    sell_price: CurrencyValue | None
+    sell_price_no_fee: CurrencyValue | None
+
+
+@dataclass
+class MarketItemOrders:
+    app_id: int
+    market_hash_name: str
+    currency: int
+    timestamp: datetime
+    dump: str
+    buy_count: int | None
+    buy_order: CurrencyValue | None
+    sell_count: int | None
+    sell_order: CurrencyValue | None
+    sell_order_no_fee: CurrencyValue | None
 
 
 @dataclass
@@ -57,6 +72,7 @@ class SellHistoryAnalyzeResult:
     recommended: bool
     deviation: float | None
     sell_order: CurrencyValue | None
+    sell_order_no_fee: CurrencyValue | None
 
 
 @dataclass

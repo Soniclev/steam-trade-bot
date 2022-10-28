@@ -2,30 +2,50 @@ import asyncio
 import operator
 import re
 import urllib.parse
+from asyncio import Queue, QueueEmpty
 from datetime import datetime, timedelta
 from typing import Callable
 from urllib.parse import urlparse, parse_qs, urlencode
 
-from aiohttp import ClientSession
+import python_socks
+from aiohttp import ClientSession, ClientError
 
 from steam_trade_bot.domain.entities.market import MarketItem, MarketItemSellHistory, Game, \
     MarketItemInfo, MarketItemNameId
 from steam_trade_bot.domain.interfaces.proxy import IProxyProvider, FreeSessionNotFound
 from steam_trade_bot.domain.interfaces.unit_of_work import IUnitOfWork
 from steam_trade_bot.domain.services.sell_history_analyzer import SellHistoryAnalyzer
-from steam_trade_bot.infrastructure.repositories import (
-    MarketItemRepository,
-    MarketItemSellHistoryRepository,
-    SellHistoryAnalyzeResultRepository, GameRepository, MarketItemInfoRepository,
-)
+from steam_trade_bot.domain.steam_fee import SteamFee
+
+
+def _retry(func):
+    retries = 50
+
+    async def wrapper(*args, **kwargs):
+        for _ in range(retries):
+            try:
+                await func(*args, **kwargs)
+                break
+            except (ClientError, python_socks._errors.ProxyError):
+                await asyncio.sleep(1)
+                continue
+        else:
+            raise MaxRetryReachedException
+    return wrapper
+
+
+class MaxRetryReachedException(Exception):
+    pass
 
 
 class TemporaryImportException(Exception):
     pass
 
 
-_SEARCH_POSTPONE = timedelta(seconds=10)
+_SEARCH_POSTPONE = timedelta(seconds=15)
 _MARKET_ITEM_PAGE_POSTPONE = timedelta(seconds=20)
+_ORDER_HISTOGRAM_POSTPONE = timedelta(seconds=5)
+_WORKERS = 2
 
 
 class MarketItemImporter:
@@ -51,8 +71,8 @@ class MarketItemImporter:
         offset = start
         do = True
         while do:
-            xxx['sort_column'] = ["popular"]
-            xxx['sort_dir'] = ["desc"]
+            #xxx['sort_column'] = ["popular"]
+            #xxx['sort_dir'] = ["desc"]
             xxx['start'] = [str(offset)]
             xxx['norender'] = ['1']
 
@@ -70,9 +90,17 @@ class MarketItemImporter:
             session = await self._get_free_session(_SEARCH_POSTPONE)
 
             print(f"Loading {new_url}")
-            async with session.get(new_url) as response:
-                response.raise_for_status()
-                resp = await response.json()
+            try:
+                async with session.get(new_url) as response:
+                    response.raise_for_status()
+                    resp = await response.json()
+            except python_socks._errors.ProxyError:
+                await asyncio.sleep(1)
+                continue
+
+            if not resp:
+                await asyncio.sleep(5)
+                continue
 
             success = resp["success"]
 
@@ -115,7 +143,7 @@ class MarketItemImporter:
                     market_tradable_restriction = asset.get("market_tradable_restriction", None)
                     market_fee = asset.get("market_fee", None)
 
-                    await uow.market_item.add_or_ignore(
+                    await uow.market_item.add_or_update(
                         MarketItem(
                             app_id=app_id,
                             market_hash_name=market_hash_name,
@@ -126,6 +154,8 @@ class MarketItemImporter:
                         )
                     )
 
+                    sell_price_no_fee = SteamFee.subtract_fee(sell_price) if sell_price else 0
+
                     await uow.market_item_info.add_or_update(
                         MarketItemInfo(
                             app_id=app_id,
@@ -133,6 +163,7 @@ class MarketItemImporter:
                             currency=1,
                             sell_listings=sell_listings,
                             sell_price=sell_price,
+                            sell_price_no_fee=sell_price_no_fee,
                         )
                     )
 
@@ -150,6 +181,21 @@ class MarketItemImporter:
         else:
             raise FreeSessionNotFound
 
+    async def _get_response(self, url: str, postpone: timedelta):
+        session = await self._get_free_session(postpone)
+
+        async with session.get(url) as response:
+            response.raise_for_status()
+            return response
+
+    async def import_from_all_games(self, currency: int):
+        async with self._uow() as uow:
+            apps = await uow.game.get_all()
+
+        for game in apps:
+            print(f"Importing items from {game=}")
+            await self.import_from_db(app_id=game.app_id, currency=currency)
+
     async def import_from_db(self, app_id: int, currency: int):
         to_import = []
         async with self._uow() as uow:
@@ -159,25 +205,35 @@ class MarketItemImporter:
             market_item_infos = sorted(market_item_infos, key=operator.attrgetter('sell_price'))
             for mii in market_item_infos:
                 if not await uow.sell_history_analyze_result.get(
-                    app_id=mii.app_id,
-                    market_hash_name=mii.market_hash_name,
-                    currency=mii.currency,
+                        app_id=mii.app_id,
+                        market_hash_name=mii.market_hash_name,
+                        currency=mii.currency,
                 ):
                     to_import.append(mii)
 
-        for market_item_info in to_import:
-            print(f"Importing {market_item_info.market_hash_name}")
-            for _ in range(50):
-                try:
-                    await self.import_item(market_item_info.app_id, market_item_info.market_hash_name)
-                    break
-                except Exception:
-                #except (FreeSessionNotFound, TemporaryImportException):
-                    await asyncio.sleep(5)
-                    continue
-            else:
-                raise FreeSessionNotFound
+        queue = Queue()
 
+        for market_item_info in to_import:
+            queue.put_nowait(market_item_info)
+
+        await asyncio.gather(
+            *[self._run_worker(i+1, queue) for i in range(_WORKERS)]
+        )
+
+    async def _run_worker(self, id_: int, queue: Queue):
+        while not queue.empty():
+            try:
+                market_item_info = queue.get_nowait()
+            except QueueEmpty:
+                break
+            print(f"[{id_}] Importing {market_item_info.market_hash_name}")
+            try:
+                await self.import_item(market_item_info.app_id,
+                                       market_item_info.market_hash_name)
+            except Exception:
+                continue
+
+    @_retry
     async def import_item(self, app_id: int, market_hash_name: str):
         url = f"https://steamcommunity.com/market/listings/{app_id}/{market_hash_name}"
 
@@ -202,6 +258,7 @@ class MarketItemImporter:
 
         if load_error:
             raise TemporaryImportException
+        timestamp = datetime.now()
         commodity = bool(int(commodity[0]))
         item_nameid = int(item_nameid[0])
         market_fee = float(market_fee[0]) if market_fee else None
@@ -214,6 +271,27 @@ class MarketItemImporter:
         sell_history = (
             sell_history[0] if sell_history else "[]"
         )
+
+        # url = f"https://steamcommunity.com/market/itemordershistogram?country=BY&language=english&currency={1}&item_nameid={item_nameid}&two_factor=0&norender=1"
+        #
+        # for _ in range(50):
+        #     try:
+        #         session = await self._get_free_session(_ORDER_HISTOGRAM_POSTPONE)
+        #         async with session.get(url) as response:
+        #             response.raise_for_status()
+        #             text = await response.text()
+        #             resp = await response.json()
+        #     except python_socks._errors.ProxyError:
+        #             await asyncio.sleep(1)
+        #             continue
+        #
+        #     if not resp["success"]:
+        #         continue
+        #     else:
+        #         break
+
+        #buy_orders = {price: count for price, count, _ in resp["buy_order_graph"]}
+        #sell_orders = {price: count for price, count, _ in resp["sell_order_graph"]}
 
         async with self._uow() as uow:
             await uow.market_item.add_or_ignore(
@@ -228,7 +306,7 @@ class MarketItemImporter:
             )
 
             history = MarketItemSellHistory(app_id=app_id, market_hash_name=market_hash_name,
-                                            currency=1, timestamp=datetime.now(),
+                                            currency=1, timestamp=timestamp,
                                             history=sell_history, )
             await uow.sell_history.add(
                 history
@@ -245,5 +323,19 @@ class MarketItemImporter:
                 market_hash_name=market_hash_name,
                 item_name_id=item_nameid
             ))
+
+            # await uow.market_item_orders.add(MarketItemOrders(
+            #     app_id=app_id,
+            #     market_hash_name=market_hash_name,
+            #     currency=1,
+            #     timestamp=timestamp,
+            #     dump=text,
+            #     buy_count=None,
+            #     buy_order=None,
+            #     sell_count=None,
+            #     sell_order=None,
+            #     sell_order_no_fee=None,
+            #     )
+            # )
 
             await uow.commit()

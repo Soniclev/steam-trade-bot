@@ -4,7 +4,7 @@ from steam_trade_bot.domain.entities.market import (
     Game,
     MarketItem,
     MarketItemSellHistory,
-    SellHistoryAnalyzeResult, MarketItemInfo, MarketItemNameId,
+    SellHistoryAnalyzeResult, MarketItemInfo, MarketItemNameId, MarketItemOrders,
 )
 
 
@@ -47,6 +47,22 @@ class IMarketItemInfoRepository(ABC):
 
     @abstractmethod
     async def get(self, app_id: int, market_hash_name: str, currency: int) -> MarketItemInfo | None:
+        ...
+
+
+class IMarketItemOrdersRepository(ABC):
+    @abstractmethod
+    async def add(self, item: MarketItemOrders):
+        ...
+
+    @abstractmethod
+    async def remove(self, app_id: int, market_hash_name: str, currency: int):
+        ...
+
+    @abstractmethod
+    async def get(
+        self, app_id: int, market_hash_name: str, currency: int
+    ) -> MarketItemOrders | None:
         ...
 
 
