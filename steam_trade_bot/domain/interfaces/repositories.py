@@ -4,7 +4,10 @@ from steam_trade_bot.domain.entities.market import (
     Game,
     MarketItem,
     MarketItemSellHistory,
-    SellHistoryAnalyzeResult, MarketItemInfo, MarketItemNameId, MarketItemOrders,
+    SellHistoryAnalyzeResult,
+    MarketItemInfo,
+    MarketItemNameId,
+    MarketItemOrders,
 )
 
 
@@ -19,6 +22,10 @@ class IGameRepository(ABC):
 
     @abstractmethod
     async def get(self, app_id: int) -> Game | None:
+        ...
+
+    @abstractmethod
+    async def get_all(self) -> list[Game]:
         ...
 
 
@@ -42,6 +49,10 @@ class IMarketItemInfoRepository(ABC):
         ...
 
     @abstractmethod
+    async def add_or_update(self, item: MarketItemInfo):
+        ...
+
+    @abstractmethod
     async def remove(self, app_id: int, market_hash_name: str, currency: int):
         ...
 
@@ -53,6 +64,10 @@ class IMarketItemInfoRepository(ABC):
 class IMarketItemOrdersRepository(ABC):
     @abstractmethod
     async def add(self, item: MarketItemOrders):
+        ...
+
+    @abstractmethod
+    async def add_or_update(self, item: MarketItemOrders):
         ...
 
     @abstractmethod
@@ -72,6 +87,10 @@ class IMarketItemNameIdRepository(ABC):
         ...
 
     @abstractmethod
+    async def add_or_ignore(self, item: MarketItemNameId):
+        ...
+
+    @abstractmethod
     async def remove(self, app_id: int, market_hash_name: str):
         ...
 
@@ -79,10 +98,18 @@ class IMarketItemNameIdRepository(ABC):
     async def get(self, app_id: int, market_hash_name: str) -> MarketItemNameId | None:
         ...
 
+    @abstractmethod
+    async def get_all(self, app_id: int) -> list[MarketItemNameId]:
+        ...
+
 
 class IMarketItemSellHistoryRepository(ABC):
     @abstractmethod
     async def add(self, item: MarketItemSellHistory):
+        ...
+
+    @abstractmethod
+    async def add_or_update(self, item: MarketItemSellHistory):
         ...
 
     @abstractmethod
@@ -99,6 +126,10 @@ class IMarketItemSellHistoryRepository(ABC):
 class ISellHistoryAnalyzeResultRepository(ABC):
     @abstractmethod
     async def add(self, item: SellHistoryAnalyzeResult):
+        ...
+
+    @abstractmethod
+    async def add_or_update(self, item: SellHistoryAnalyzeResult):
         ...
 
     @abstractmethod

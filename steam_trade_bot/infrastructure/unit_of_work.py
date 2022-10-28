@@ -3,9 +3,15 @@ from typing import Callable
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from steam_trade_bot.domain.interfaces.unit_of_work import IUnitOfWork
-from steam_trade_bot.infrastructure.repositories import GameRepository, MarketItemInfoRepository, \
-    MarketItemSellHistoryRepository, SellHistoryAnalyzeResultRepository, MarketItemRepository, \
-    MarketItemNameIdRepository, MarketItemOrdersRepository
+from steam_trade_bot.infrastructure.repositories import (
+    GameRepository,
+    MarketItemInfoRepository,
+    MarketItemSellHistoryRepository,
+    SellHistoryAnalyzeResultRepository,
+    MarketItemRepository,
+    MarketItemNameIdRepository,
+    MarketItemOrdersRepository,
+)
 
 
 class UnitOfWork(IUnitOfWork):

@@ -3,25 +3,16 @@ import json
 import operator
 import statistics
 from datetime import datetime, timedelta
-from typing import Callable
 
 from steam_trade_bot.domain.entities.market import SellHistoryAnalyzeResult, MarketItemSellHistory
-from steam_trade_bot.domain.interfaces.unit_of_work import IUnitOfWork
 from steam_trade_bot.domain.steam_fee import SteamFee
-from steam_trade_bot.infrastructure.repositories import MarketItemSellHistoryRepository
 
 _MAX_FALL_DEVIATION = 0.05
-
 _MEAN_MAX_THRESHOLD = 0.1
-
 _MEAN_MIN_THRESHOLD = 0.1
-
 _WINDOWS_SIZE = 15
-
 _MAX_DEVIATION = 0.06
-
 _MIN_SELLS_PER_WEEK = 10
-
 _QUANTILES_MIN_POINTS = 10
 
 
@@ -45,12 +36,7 @@ def window_slicing(k, iter_):
 
 
 class SellHistoryAnalyzer:
-    def __init__(self, uow: Callable[..., IUnitOfWork]):
-        self._uow = uow
-
-    async def analyze(
-        self, history: MarketItemSellHistory
-    ) -> SellHistoryAnalyzeResult:
+    async def analyze(self, history: MarketItemSellHistory) -> SellHistoryAnalyzeResult:
         j = json.loads(history.history)
 
         sells_last_day = 0
@@ -59,8 +45,8 @@ class SellHistoryAnalyzer:
 
         curr_dt = datetime.now()
         to_process = []
-        for ts, price, amount in reversed(j):
-            dt = steam_date_str_to_datetime(ts)
+        for timestamp, price, amount in reversed(j):
+            dt = steam_date_str_to_datetime(timestamp)
             price = round(price, 2)
             amount = int(amount)
             if curr_dt - dt <= timedelta(days=1):
@@ -140,7 +126,6 @@ class SellHistoryAnalyzer:
         recommended = (
             is_fall_ok and is_low_deviation and is_ok and (sells_last_week >= _MIN_SELLS_PER_WEEK)
         )
-        pass
 
         return SellHistoryAnalyzeResult(
             app_id=history.app_id,
@@ -155,17 +140,3 @@ class SellHistoryAnalyzer:
             sell_order=sell_order,
             sell_order_no_fee=SteamFee.subtract_fee(sell_order),
         )
-
-        # sells_last_month = ...
-        # sells_last_week = ...
-        # sells_last_day = ...
-
-        # price_dispersion = ...
-        # OR
-        # ensure that percentile_80 faced several times across last month
-
-        # percentile_80 = ...
-        # buy_order = ...
-        # profit = ...
-        # recommended = profit >= expected_profit and price_dispersion < 0.2
-        pass

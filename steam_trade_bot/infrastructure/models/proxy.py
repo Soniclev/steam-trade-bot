@@ -10,7 +10,8 @@ from sqlalchemy import (
     UniqueConstraint,
     DateTime,
     Float,
-    BigInteger, Enum,
+    BigInteger,
+    Enum,
 )
 
 from steam_trade_bot.domain.entities.proxy import ProxyProtocolEnum

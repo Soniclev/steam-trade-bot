@@ -1,0 +1,123 @@
+{
+	"success": 1,
+	"sell_order_table": "<table class=\"market_commodity_orders_table\"><tr><th align=\"right\">Price</th><th align=\"right\">Quantity</th></tr><tr><td align=\"right\" class=\"\">$0.14</td><td align=\"right\">1</td></tr><tr><td align=\"right\" class=\"\">$0.15</td><td align=\"right\">75</td></tr><tr><td align=\"right\" class=\"\">$0.16</td><td align=\"right\">71</td></tr><tr><td align=\"right\" class=\"\">$0.17</td><td align=\"right\">3</td></tr><tr><td align=\"right\" class=\"\">$0.18</td><td align=\"right\">2</td></tr><tr><td align=\"right\" class=\"\">$0.19 or more</td><td align=\"right\">160</td></tr></table>",
+	"sell_order_summary": "<span class=\"market_commodity_orders_header_promote\">312</span> for sale starting at <span class=\"market_commodity_orders_header_promote\">$0.14</span>",
+	"buy_order_table": "<table class=\"market_commodity_orders_table\"><tr><th align=\"right\">Price</th><th align=\"right\">Quantity</th></tr><tr><td align=\"right\" class=\"\">$0.13</td><td align=\"right\">95</td></tr><tr><td align=\"right\" class=\"\">$0.12</td><td align=\"right\">343</td></tr><tr><td align=\"right\" class=\"\">$0.11</td><td align=\"right\">66</td></tr><tr><td align=\"right\" class=\"\">$0.10</td><td align=\"right\">117</td></tr><tr><td align=\"right\" class=\"\">$0.09</td><td align=\"right\">24</td></tr><tr><td align=\"right\" class=\"\">$0.08 or less</td><td align=\"right\">187</td></tr></table>",
+	"buy_order_summary": "<span class=\"market_commodity_orders_header_promote\">832</span> requests to buy at <span class=\"market_commodity_orders_header_promote\">$0.13</span> or lower",
+	"highest_buy_order": "13",
+	"lowest_sell_order": "14",
+	"buy_order_graph": [
+		[
+			0.13,
+			95,
+			"95 buy orders at $0.13 or higher"
+		],
+		[
+			0.12,
+			438,
+			"438 buy orders at $0.12 or higher"
+		],
+		[
+			0.11,
+			504,
+			"504 buy orders at $0.11 or higher"
+		],
+		[
+			0.1,
+			621,
+			"621 buy orders at $0.10 or higher"
+		],
+		[
+			0.09,
+			645,
+			"645 buy orders at $0.09 or higher"
+		],
+		[
+			0.08,
+			657,
+			"657 buy orders at $0.08 or higher"
+		],
+		[
+			0.07,
+			702,
+			"702 buy orders at $0.07 or higher"
+		],
+		[
+			0.05,
+			724,
+			"724 buy orders at $0.05 or higher"
+		],
+		[
+			0.04,
+			726,
+			"726 buy orders at $0.04 or higher"
+		],
+		[
+			0.03,
+			832,
+			"832 buy orders at $0.03 or higher"
+		]
+	],
+	"sell_order_graph": [
+		[
+			0.14,
+			1,
+			"1 sell orders at $0.14 or lower"
+		],
+		[
+			0.15,
+			76,
+			"76 sell orders at $0.15 or lower"
+		],
+		[
+			0.16,
+			147,
+			"147 sell orders at $0.16 or lower"
+		],
+		[
+			0.17,
+			150,
+			"150 sell orders at $0.17 or lower"
+		],
+		[
+			0.18,
+			152,
+			"152 sell orders at $0.18 or lower"
+		],
+		[
+			0.19,
+			158,
+			"158 sell orders at $0.19 or lower"
+		],
+		[
+			0.2,
+			169,
+			"169 sell orders at $0.20 or lower"
+		],
+		[
+			0.23,
+			170,
+			"170 sell orders at $0.23 or lower"
+		],
+		[
+			0.24,
+			174,
+			"174 sell orders at $0.24 or lower"
+		],
+		[
+			0.25,
+			190,
+			"190 sell orders at $0.25 or lower"
+		],
+		[
+			0.27,
+			191,
+			"191 sell orders at $0.27 or lower"
+		]
+	],
+	"graph_max_y": 900,
+	"graph_min_x": 0.03,
+	"graph_max_x": 0.27,
+	"price_prefix": "$",
+	"price_suffix": ""
+}

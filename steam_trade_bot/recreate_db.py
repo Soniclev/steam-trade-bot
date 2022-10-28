@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 
 from steam_trade_bot.infrastructure.models import proxy_metadata, market_metadata
-from steam_trade_bot.infrastructure.models.market import game_table, currency_table
+from steam_trade_bot.infrastructure.models.market import currency_table
 
 
 async def main():
@@ -23,7 +23,7 @@ async def main():
 
     async with async_session() as session:
         async with session.begin():
-            result = await session.execute(
+            await session.execute(
                 insert(currency_table).values(),
                 [
                     {"id": 1, "name": "USD"},
@@ -32,4 +32,6 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    print("Are you sure? [y/N]")
+    if input() == "y":
+        asyncio.run(main())
