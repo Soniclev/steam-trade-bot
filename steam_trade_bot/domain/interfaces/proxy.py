@@ -1,12 +1,10 @@
 from abc import abstractmethod, ABC
 from datetime import timedelta
 
-from aiohttp import ClientSession
-
 from steam_trade_bot.domain.entities.proxy import Proxy
 
 
-class FreeSessionNotFound(Exception):
+class FreeProxyNotFound(Exception):
     pass
 
 
@@ -26,5 +24,9 @@ class IProxyRepository(ABC):
 
 class IProxyProvider(ABC):
     @abstractmethod
-    async def get_session(self, postpone: timedelta) -> ClientSession:
+    async def get(self, postpone: timedelta) -> Proxy:
+        ...
+
+    @abstractmethod
+    async def postpone(self, proxy: Proxy, postpone: timedelta) -> None:
         ...

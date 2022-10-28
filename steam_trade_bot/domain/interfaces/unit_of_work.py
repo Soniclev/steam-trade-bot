@@ -1,8 +1,14 @@
 from abc import ABC, abstractmethod
 
-from steam_trade_bot.domain.interfaces.repositories import IGameRepository, IMarketItemRepository, \
-    IMarketItemInfoRepository, IMarketItemSellHistoryRepository, \
-    ISellHistoryAnalyzeResultRepository, IMarketItemNameIdRepository, IMarketItemOrdersRepository
+from steam_trade_bot.domain.interfaces.repositories import (
+    IGameRepository,
+    IMarketItemRepository,
+    IMarketItemInfoRepository,
+    IMarketItemSellHistoryRepository,
+    ISellHistoryAnalyzeResultRepository,
+    IMarketItemNameIdRepository,
+    IMarketItemOrdersRepository,
+)
 
 
 class IUnitOfWork(ABC):

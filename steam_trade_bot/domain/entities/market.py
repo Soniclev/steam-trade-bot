@@ -19,6 +19,9 @@ class MarketItem:
     market_tradable_restriction: int | None
     commodity: bool
 
+    def is_tradable(self) -> bool:
+        return self.market_tradable_restriction != -1  # -1 means not tradable at all
+
 
 @dataclass
 class MarketItemInfo:
@@ -42,6 +45,12 @@ class MarketItemOrders:
     sell_count: int | None
     sell_order: CurrencyValue | None
     sell_order_no_fee: CurrencyValue | None
+
+
+@dataclass
+class MarketItemOrder:
+    price: CurrencyValue
+    quantity: int
 
 
 @dataclass

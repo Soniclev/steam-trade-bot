@@ -9,7 +9,8 @@ from sqlalchemy import (
     UniqueConstraint,
     DateTime,
     Float,
-    BigInteger, MetaData,
+    BigInteger,
+    MetaData,
 )
 
 market_metadata = MetaData()

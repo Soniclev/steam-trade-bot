@@ -24,9 +24,13 @@ class Proxy:
         if protocol == "https":
             protocol = "http"
 
-        return Proxy(protocol=ProxyProtocolEnum(protocol.upper()), host=result.hostname,
-                     port=result.port,
-                     login=result.username, password=result.password)
+        return Proxy(
+            protocol=ProxyProtocolEnum(protocol.upper()),
+            host=result.hostname,
+            port=result.port,
+            login=result.username,
+            password=result.password,
+        )
 
     def __str__(self):
         login_password = f"{self.login}:{self.password}@" if self.login and self.password else ""

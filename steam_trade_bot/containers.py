@@ -1,21 +1,21 @@
+# pylint: disable=E1101
 from typing import Callable
 
 import aioredis
 from dependency_injector import containers, providers
-from dependency_injector.wiring import Provide, inject
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 
-from steam_trade_bot.domain.services.market_item_importer import MarketItemImporter
+from steam_trade_bot.domain.services.market_item_importer import (
+    MarketItemImporterFromSearch,
+    MarketItemImporterFromOrdersHistogram,
+    MarketItemImporterFromPage,
+)
 from steam_trade_bot.domain.services.sell_history_analyzer import SellHistoryAnalyzer
 from steam_trade_bot.domain.services.ste_export import STEExport
 from steam_trade_bot.infrastructure.proxy import ProxyRepository, ProxyProvider
-from steam_trade_bot.infrastructure.repositories import (
-    GameRepository,
-    MarketItemRepository,
-    MarketItemSellHistoryRepository,
-    SellHistoryAnalyzeResultRepository, MarketItemInfoRepository,
-)
+from steam_trade_bot.infrastructure.session import SteamSessionProvider
+
 from steam_trade_bot.infrastructure.unit_of_work import UnitOfWork
 
 
@@ -64,6 +64,12 @@ class Infrastructure(containers.DeclarativeContainer):
         database.redis,
     )
 
+    steam_session_provider = providers.Singleton(
+        SteamSessionProvider,
+        proxy_provider,
+        database.redis,
+    )
+
 
 class Services(containers.DeclarativeContainer):
     config = providers.Configuration()
@@ -72,14 +78,28 @@ class Services(containers.DeclarativeContainer):
 
     sell_history_analyzer = providers.Singleton(
         SellHistoryAnalyzer,
-        repositories.unit_of_work.provider,
     )
 
-    market_item_importer = providers.Singleton(
-        MarketItemImporter,
+    market_item_importer_from_search = providers.Singleton(
+        MarketItemImporterFromSearch,
+        repositories.unit_of_work.provider,
+        infrastructure.steam_session_provider,
+        config.market_item_search,
+    )
+
+    market_item_importer_from_page = providers.Singleton(
+        MarketItemImporterFromPage,
         repositories.unit_of_work.provider,
         sell_history_analyzer,
-        infrastructure.proxy_provider,
+        infrastructure.steam_session_provider,
+        config.market_item_page,
+    )
+
+    market_item_importer_from_orders = providers.Singleton(
+        MarketItemImporterFromOrdersHistogram,
+        repositories.unit_of_work.provider,
+        infrastructure.steam_session_provider,
+        config.market_item_orders,
     )
 
     ste_export = providers.Singleton(
@@ -108,7 +128,5 @@ class Container(containers.DeclarativeContainer):
     )
 
     services = providers.Container(
-        Services,
-        repositories=repositories,
-        infrastructure=infrastructure
+        Services, config=config, repositories=repositories, infrastructure=infrastructure
     )
