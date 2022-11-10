@@ -73,7 +73,7 @@ class SteamSessionProvider(ISteamSessionProvider):
         self._headers = {
             "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:105.0) Gecko/20100101 Firefox/105.0",
             "Accept": "*/*",
-            "Accept-Language": "ru-RU,ru;q=0.8,en-US;q=0.5,en;q=0.3",
+            "Accept-Language": "en-EN,en;q=0.9",
             "Accept-Encoding": "gzip, deflate, br",
             "Connection": "keep-alive",
             "Sec-Fetch-Dest": "empty",
