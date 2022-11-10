@@ -66,6 +66,13 @@ class TemporaryImportException(Exception):
     pass
 
 
+class NoListingsException(Exception):
+    def __init__(self, app_id: int, market_hash_name: str):
+        self.app_id = app_id
+        self.market_hash_name = market_hash_name
+        super().__init__(f"There are no listings for {app_id=} {market_hash_name=}")
+
+
 def _recreate_url(parsed_query: dict, parsed_url: urllib.parse.ParseResult) -> str:
     new_url = urllib.parse.urlunparse(
         (
@@ -175,7 +182,7 @@ class MarketItemImporterFromSearch(BaseMarketItemImporter):
             ]
         )
 
-    async def _run_import_worker(self, id_: int, queue: Queue, currency: int):
+    async def _run_import_worker(self, id_: int, queue: Queue):
         while not queue.empty():
             try:
                 url, currency = queue.get_nowait()
@@ -305,6 +312,8 @@ class MarketItemImporterFromPage(BaseMarketItemImporter):
             await uow.commit()
 
         for game in apps:
+            if game.app_id in {753}:
+                continue
             _log.info(f"Importing items from {game=}")
             await self.import_from_db(app_id=game.app_id, currency=currency)
 
@@ -339,18 +348,23 @@ class MarketItemImporterFromPage(BaseMarketItemImporter):
                 market_item_info = queue.get_nowait()
             except QueueEmpty:
                 break
-            _log.info(f"[{id_}] Importing {market_item_info.market_hash_name}")
+            _log.info(f"[{id_}] Importing {market_item_info.app_id} - {market_item_info.market_hash_name}")
             try:
                 await self.import_item(
                     market_item_info.app_id, market_item_info.market_hash_name, currency
                 )
+            except NoListingsException as exc:
+                _log.info(f"No listings for for {exc.app_id} - {exc.market_hash_name}. Deleting this market item")
+                async with self._uow() as uow:
+                    await uow.market_item.remove(app_id=exc.app_id, market_hash_name=exc.market_hash_name)
+                    await uow.commit()
+                _log.info(f"Successfully deleted market item {exc.app_id} - {exc.market_hash_name}")
             except Exception as exc:
                 _log.exception(exc)
                 continue
 
     async def import_item(self, app_id: int, market_hash_name: str, currency: int):
-        url = f"https://steamcommunity.com/market/listings/{app_id}/{market_hash_name}"
-
+        url = f"https://steamcommunity.com/market/listings/{app_id}/{urllib.parse.quote(market_hash_name)}"
         steam_session = await self._get_free_session(self._settings.postpone)
         if steam_session.currency != currency:
             raise CurrencyNotSupported(currency)
@@ -373,6 +387,7 @@ class MarketItemImporterFromPage(BaseMarketItemImporter):
             r"<div.+>\s+There was an error getting listings for this item\. Please try again later\.\s+</div>",
             text,
         )
+        no_listings = re.findall(r"<div.+>\s+There are no listings for this item\.\s+</div>", text)
         commodity = re.findall(r"var\s+g_rgAssets\s+=\s+{.*\"commodity\":(\d).*};", text)
         market_fee = re.findall(r"var\s+g_rgAssets\s+=\s+{.*\"market_fee\":(\d).*};", text)
         market_marketable_restriction = re.findall(
@@ -386,9 +401,9 @@ class MarketItemImporterFromPage(BaseMarketItemImporter):
 
         if load_error:
             raise TemporaryImportException
+        if no_listings and not item_nameid:
+            raise NoListingsException(app_id=app_id, market_hash_name=market_hash_name)
         timestamp = datetime.now()
-        # TODO:
-        # some items like 'Mann Co. Supply Crate Series #12' requires billing info
         commodity = bool(int(commodity[0]))
         item_nameid = int(item_nameid[0])
         market_fee = float(market_fee[0]) if market_fee else None
@@ -478,7 +493,7 @@ class MarketItemImporterFromOrdersHistogram(BaseMarketItemImporter):
                 market_item_info = queue.get_nowait()
             except QueueEmpty:
                 break
-            _log.info(f"[{id_}] Importing item orders {market_item_info.market_hash_name}")
+            _log.info(f"[{id_}] Importing item orders {market_item_info.app_id} - {market_item_info.market_hash_name}")
             try:
                 await self.import_item_orders(
                     market_item_info.app_id, market_item_info.market_hash_name, currency
