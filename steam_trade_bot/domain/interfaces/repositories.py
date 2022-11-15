@@ -53,6 +53,10 @@ class IMarketItemInfoRepository(ABC):
         ...
 
     @abstractmethod
+    async def add_or_update_bulk(self, item: MarketItemInfo):
+        ...
+
+    @abstractmethod
     async def remove(self, app_id: int, market_hash_name: str, currency: int):
         ...
 
