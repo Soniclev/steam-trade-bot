@@ -43,6 +43,20 @@ class GameRepository(IGameRepository):
     async def add(self, game: Game):
         await self._session.execute(insert(game_table).values(asdict(game)))
 
+    async def add_or_ignore(self, game: Game):
+        try:
+            await self._session.execute(
+                insert(game_table)
+                .values(asdict(game))
+                .on_conflict_do_nothing(
+                    constraint=game_table.primary_key,
+                )
+            )
+        except DBAPIError as exc:
+            if "<class 'asyncpg.exceptions.SerializationError'>: could not serialize access due to concurrent update" in exc.args[0]:
+                raise SerializationError
+            raise
+
     async def remove(self, app_id: int):
         await self._session.execute(delete(game_table).where(game_table.c.app_id == app_id))
 
@@ -82,6 +96,19 @@ class MarketItemInfoRepository(IMarketItemInfoRepository):
                 },
             )
         )
+
+    async def add_or_update_bulk(self, items: list[MarketItemInfo]):
+        stmt = insert(market_item_info_table)\
+            .values([asdict(item) for item in items])
+        stmt = stmt.on_conflict_do_update(
+                constraint=market_item_info_table.primary_key,
+                set_={
+                    "sell_listings": stmt.excluded.sell_listings,
+                    "sell_price": stmt.excluded.sell_price,
+                    "sell_price_no_fee": stmt.excluded.sell_price_no_fee,
+                },
+            )
+        await self._session.execute(stmt)
 
     async def remove(self, app_id: int, market_hash_name: str, currency: int):
         await self._session.execute(
@@ -163,6 +190,25 @@ class MarketItemRepository(IMarketItemRepository):
                     },
                 )
             )
+        except DBAPIError as exc:
+            if "<class 'asyncpg.exceptions.SerializationError'>: could not serialize access due to concurrent update" in exc.args[0]:
+                raise SerializationError
+            raise
+
+    async def add_or_update_bulk(self, items: list[MarketItem]):
+        try:
+            stmt = insert(market_item_table)\
+                .values([asdict(item) for item in items])
+            stmt = stmt.on_conflict_do_update(
+                constraint=market_item_table.primary_key,
+                set_={
+                    "market_fee": stmt.excluded.market_fee,
+                    "market_marketable_restriction": stmt.excluded.market_marketable_restriction,
+                    "market_tradable_restriction": stmt.excluded.market_tradable_restriction,
+                    "commodity": stmt.excluded.commodity,
+                }
+            )
+            await self._session.execute(stmt)
         except DBAPIError as exc:
             if "<class 'asyncpg.exceptions.SerializationError'>: could not serialize access due to concurrent update" in exc.args[0]:
                 raise SerializationError

@@ -73,6 +73,13 @@ class NoListingsException(Exception):
         super().__init__(f"There are no listings for {app_id=} {market_hash_name=}")
 
 
+class InvalidMarketItemException(Exception):
+    def __init__(self, app_id: int, market_hash_name: str):
+        self.app_id = app_id
+        self.market_hash_name = market_hash_name
+        super().__init__(f"Invalid market item definition {app_id=} {market_hash_name=}")
+
+
 def _recreate_url(parsed_query: dict, parsed_url: urllib.parse.ParseResult) -> str:
     new_url = urllib.parse.urlunparse(
         (
@@ -177,7 +184,7 @@ class MarketItemImporterFromSearch(BaseMarketItemImporter):
 
         await asyncio.gather(
             *[
-                self._run_import_worker(i + 1, queue, currency)
+                self._run_import_worker(i + 1, queue)
                 for i in range(self._settings.workers)
             ]
         )
@@ -231,7 +238,7 @@ class MarketItemImporterFromSearch(BaseMarketItemImporter):
 
             for app_id, app_name in apps.items():
                 if app_id not in existed_app_ids:
-                    await uow.game.add(Game(app_id=app_id, name=app_name))
+                    await uow.game.add_or_ignore(Game(app_id=app_id, name=app_name))
             await uow.commit()
 
         market_items = []
@@ -270,14 +277,16 @@ class MarketItemImporterFromSearch(BaseMarketItemImporter):
         for _ in range(100):
             try:
                 async with self._uow() as uow:
-                    for market_item in market_items:
-                        await uow.market_item.add_or_update(
-                            market_item
-                        )
-                    for market_item_info in market_item_infos:
-                        await uow.market_item_info.add_or_update(
-                            market_item_info
-                        )
+                    await uow.market_item.add_or_update_bulk(market_items)
+                    # for market_item in market_items:
+                    #     await uow.market_item.add_or_update(
+                    #         market_item
+                    #     )
+                    await uow.market_item_info.add_or_update_bulk(market_item_infos)
+                    # for market_item_info in market_item_infos:
+                    #     await uow.market_item_info.add_or_update(
+                    #         market_item_info
+                    #     )
                     await uow.commit()
                     _log.info(f"Added or updated {len(items)} items")
                     break
@@ -316,6 +325,7 @@ class MarketItemImporterFromPage(BaseMarketItemImporter):
                 continue
             _log.info(f"Importing items from {game=}")
             await self.import_from_db(app_id=game.app_id, currency=currency)
+        await self.import_from_db(app_id=753, currency=currency)
 
     async def import_from_db(self, app_id: int, currency: int):
         to_import = []
@@ -353,8 +363,11 @@ class MarketItemImporterFromPage(BaseMarketItemImporter):
                 await self.import_item(
                     market_item_info.app_id, market_item_info.market_hash_name, currency
                 )
-            except NoListingsException as exc:
-                _log.info(f"No listings for for {exc.app_id} - {exc.market_hash_name}. Deleting this market item")
+            except (NoListingsException, InvalidMarketItemException) as exc:
+                if isinstance(exc, NoListingsException):
+                    _log.info(f"No listings for for {exc.app_id} - {exc.market_hash_name}. Deleting this market item")
+                elif isinstance(exc, InvalidMarketItemException):
+                    _log.info(f"Found invalid market item definition {exc.app_id} - {exc.market_hash_name}. Deleting this market item")
                 async with self._uow() as uow:
                     await uow.market_item.remove(app_id=exc.app_id, market_hash_name=exc.market_hash_name)
                     await uow.commit()
@@ -381,7 +394,10 @@ class MarketItemImporterFromPage(BaseMarketItemImporter):
                 await self._steam_session_provider.postpone(
                     steam_session, self._settings.too_many_requests_postpone
                 )
-            raise
+            elif exc.status == 404:
+                raise InvalidMarketItemException(app_id=app_id, market_hash_name=market_hash_name) from exc
+            else:
+                raise
 
         load_error = re.findall(
             r"<div.+>\s+There was an error getting listings for this item\. Please try again later\.\s+</div>",
@@ -403,6 +419,8 @@ class MarketItemImporterFromPage(BaseMarketItemImporter):
             raise TemporaryImportException
         if no_listings and not item_nameid:
             raise NoListingsException(app_id=app_id, market_hash_name=market_hash_name)
+        if commodity and not item_nameid:
+            raise InvalidMarketItemException(app_id=app_id, market_hash_name=market_hash_name)
         timestamp = datetime.now()
         commodity = bool(int(commodity[0]))
         item_nameid = int(item_nameid[0])
@@ -459,8 +477,11 @@ class MarketItemImporterFromOrdersHistogram(BaseMarketItemImporter):
             await uow.commit()
 
         for game in apps:
+            if game.app_id in {753}:
+                continue
             _log.info(f"Importing items orders from {game=}")
             await self.import_orders_from_db(app_id=game.app_id, currency=currency)
+        await self.import_orders_from_db(app_id=753, currency=currency)
 
     async def import_orders_from_db(self, app_id: int, currency: int):
         to_import = []
@@ -515,7 +536,7 @@ class MarketItemImporterFromOrdersHistogram(BaseMarketItemImporter):
         if steam_session.currency != currency:
             raise CurrencyNotSupported(currency)
         country = steam_session.country
-        language = steam_session.country
+        language = steam_session.language
 
         url = (
             f"https://steamcommunity.com/market/itemordershistogram?country={country}"
@@ -531,7 +552,7 @@ class MarketItemImporterFromOrdersHistogram(BaseMarketItemImporter):
             "If-Modified-Since": time_now.strftime("%a, %d %b %Y %H:%M:%S GMT"),
         }
         max_retries = 10
-        timeout = self._settings.timeout
+        timeout = self._settings.timeout.total_seconds()
         minimal_request_delay = self._settings.minimal_delay
         for i in range(max_retries):
             try:
