@@ -1,8 +1,10 @@
-import asyncio
+import operator
 from dataclasses import asdict
+from datetime import datetime
+from typing import TypeVar, Generic
 
 from asyncpg import SerializationError
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, Table
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -35,458 +37,322 @@ from steam_trade_bot.infrastructure.models.market import (
     market_item_orders_table,
 )
 
+T = TypeVar('T')
 
-class GameRepository(IGameRepository):
-    def __init__(self, session: AsyncSession):
+
+class BaseRepository(Generic[T]):
+    def __init__(self, session: AsyncSession, table: Table, on_conflict_update: set[str],
+                 type_: type):
         self._session = session
+        self._table = table
+        self._conflict_update_set = {x: operator.attrgetter(x) for x in on_conflict_update}
+        self._type = type_
 
-    async def add(self, game: Game):
-        await self._session.execute(insert(game_table).values(asdict(game)))
-
-    async def add_or_ignore(self, game: Game):
+    async def add(self, items: list[T]):
         try:
-            await self._session.execute(
-                insert(game_table)
-                .values(asdict(game))
-                .on_conflict_do_nothing(
-                    constraint=game_table.primary_key,
-                )
-            )
-        except DBAPIError as exc:
-            if "<class 'asyncpg.exceptions.SerializationError'>: could not serialize access due to concurrent update" in exc.args[0]:
-                raise SerializationError
-            raise
-
-    async def remove(self, app_id: int):
-        await self._session.execute(delete(game_table).where(game_table.c.app_id == app_id))
-
-    async def get(self, app_id: int) -> Game | None:
-        result = await self._session.execute(
-            select(game_table).where(game_table.c.app_id == app_id)
-        )
-        row = result.fetchone()
-        if row:
-            return Game(**row)
-        else:
-            return None
-
-    async def get_all(self) -> list[Game]:
-        result = await self._session.execute(select(game_table))
-        rows = result.fetchall()
-        return [Game(**row) for row in rows]
-
-
-class MarketItemInfoRepository(IMarketItemInfoRepository):
-    def __init__(self, session: AsyncSession):
-        self._session = session
-
-    async def add(self, item: MarketItemInfo):
-        await self._session.execute(insert(market_item_info_table).values(asdict(item)))
-
-    async def add_or_update(self, item: MarketItemInfo):
-        await self._session.execute(
-            insert(market_item_info_table)
-            .values(asdict(item))
-            .on_conflict_do_update(
-                constraint=market_item_info_table.primary_key,
-                set_={
-                    "sell_listings": item.sell_listings,
-                    "sell_price": item.sell_price,
-                    "sell_price_no_fee": item.sell_price_no_fee,
-                },
-            )
-        )
-
-    async def add_or_update_bulk(self, items: list[MarketItemInfo]):
-        stmt = insert(market_item_info_table)\
-            .values([asdict(item) for item in items])
-        stmt = stmt.on_conflict_do_update(
-                constraint=market_item_info_table.primary_key,
-                set_={
-                    "sell_listings": stmt.excluded.sell_listings,
-                    "sell_price": stmt.excluded.sell_price,
-                    "sell_price_no_fee": stmt.excluded.sell_price_no_fee,
-                },
-            )
-        await self._session.execute(stmt)
-
-    async def remove(self, app_id: int, market_hash_name: str, currency: int):
-        await self._session.execute(
-            delete(market_item_info_table)
-            .where(market_item_info_table.c.app_id == app_id)
-            .where(market_item_info_table.c.market_hash_name == market_hash_name)
-            .where(market_item_info_table.c.currency == currency)
-        )
-
-    async def get(self, app_id: int, market_hash_name: str, currency: int) -> MarketItemInfo | None:
-        result = await self._session.execute(
-            select(
-                [
-                    market_item_info_table.c.app_id,
-                    market_item_info_table.c.market_hash_name,
-                    market_item_info_table.c.currency,
-                    market_item_info_table.c.sell_listings,
-                    market_item_info_table.c.sell_price,
-                    market_item_info_table.c.sell_price_no_fee,
-                ]
-            )
-            .where(market_item_info_table.c.app_id == app_id)
-            .where(market_item_info_table.c.market_hash_name == market_hash_name)
-            .where(market_item_info_table.c.currency == currency)
-        )
-        row = result.fetchone()
-        if row:
-            return MarketItemInfo(**row)
-        else:
-            return None
-
-    async def get_all(self, app_id: int, currency: int) -> list[MarketItemInfo]:
-        result = await self._session.execute(
-            select(
-                [
-                    market_item_info_table.c.app_id,
-                    market_item_info_table.c.market_hash_name,
-                    market_item_info_table.c.currency,
-                    market_item_info_table.c.sell_listings,
-                    market_item_info_table.c.sell_price,
-                    market_item_info_table.c.sell_price_no_fee,
-                ]
-            )
-            .where(market_item_info_table.c.app_id == app_id)
-            .where(market_item_info_table.c.currency == currency)
-        )
-        rows = result.fetchall()
-        return [MarketItemInfo(**row) for row in rows]
-
-
-class MarketItemRepository(IMarketItemRepository):
-    def __init__(self, session: AsyncSession):
-        self._session = session
-
-    async def add(self, item: MarketItem):
-        await self._session.execute(insert(market_item_table).values(asdict(item)))
-
-    async def add_or_ignore(self, item: MarketItem):
-        await self._session.execute(
-            insert(market_item_table)
-            .values(asdict(item))
-            .on_conflict_do_nothing(
-                constraint=market_item_table.primary_key,
-            )
-        )
-
-    async def add_or_update(self, item: MarketItem):
-        try:
-            await self._session.execute(
-                insert(market_item_table)
-                .values(asdict(item))
-                .on_conflict_do_update(
-                    constraint=market_item_table.primary_key,
-                    set_={
-                        "market_fee": item.market_fee,
-                        "market_marketable_restriction": item.market_marketable_restriction,
-                        "market_tradable_restriction": item.market_tradable_restriction,
-                        "commodity": item.commodity,
-                    },
-                )
-            )
-        except DBAPIError as exc:
-            if "<class 'asyncpg.exceptions.SerializationError'>: could not serialize access due to concurrent update" in exc.args[0]:
-                raise SerializationError
-            raise
-
-    async def add_or_update_bulk(self, items: list[MarketItem]):
-        try:
-            stmt = insert(market_item_table)\
+            stmt = insert(self._table) \
                 .values([asdict(item) for item in items])
+            await self._session.execute(stmt)
+        except DBAPIError as exc:
+            if "<class 'asyncpg.exceptions.SerializationError'>: could not serialize access due to concurrent update" in \
+                    exc.args[0]:
+                raise SerializationError
+            raise
+
+    async def add_or_update(self, items: list[T]):
+        try:
+            stmt = insert(self._table) \
+                .values([asdict(item) for item in items])
+            set_ = {
+                key: value(stmt.excluded)
+                for key, value in self._conflict_update_set.items()
+            }
             stmt = stmt.on_conflict_do_update(
-                constraint=market_item_table.primary_key,
-                set_={
-                    "market_fee": stmt.excluded.market_fee,
-                    "market_marketable_restriction": stmt.excluded.market_marketable_restriction,
-                    "market_tradable_restriction": stmt.excluded.market_tradable_restriction,
-                    "commodity": stmt.excluded.commodity,
-                }
+                constraint=self._table.primary_key,
+                set_=set_
             )
             await self._session.execute(stmt)
         except DBAPIError as exc:
-            if "<class 'asyncpg.exceptions.SerializationError'>: could not serialize access due to concurrent update" in exc.args[0]:
+            if "<class 'asyncpg.exceptions.SerializationError'>: could not serialize access due to concurrent update" in \
+                    exc.args[0]:
                 raise SerializationError
             raise
 
+    async def add_or_ignore(self, items: list[T]):
+        try:
+            stmt = insert(self._table) \
+                .values([asdict(item) for item in items])
+            stmt = stmt.on_conflict_do_nothing(
+                constraint=self._table.primary_key
+            )
+            await self._session.execute(stmt)
+        except DBAPIError as exc:
+            if "<class 'asyncpg.exceptions.SerializationError'>: could not serialize access due to concurrent update" in \
+                    exc.args[0]:
+                raise SerializationError
+            raise
+
+    async def _remove(self, stmt):
+        await self._session.execute(stmt)
+
+    async def _get(self, stmt) -> T | None:
+        result = await self._session.execute(stmt)
+        row = result.fetchone()
+        if row:
+            return self._type(**row)
+        else:
+            return None
+
+    async def _get_all(self, stmt) -> list[T]:
+        result = await self._session.execute(stmt)
+        rows = result.fetchall()
+        return [self._type(**row) for row in rows]
+
+
+class AppCurrencyBasedRepository(BaseRepository[T]):
+    def __init__(self, session: AsyncSession, table: Table, on_conflict_update: set[str],
+                 select_: list, type_: type):
+        super().__init__(session, table, on_conflict_update, type_)
+        self._select = select_
+
+    async def remove(self, app_id: int, market_hash_name: str, currency: int):
+        await super(AppCurrencyBasedRepository, self)._remove(
+            delete(self._table)
+            .where(self._table.c.app_id == app_id)
+            .where(self._table.c.market_hash_name == market_hash_name)
+            .where(self._table.c.currency == currency)
+        )
+
+    async def get(
+            self, app_id: int, market_hash_name: str, currency: int
+    ) -> T | None:
+        return await super(AppCurrencyBasedRepository, self)._get(
+            select(self._select)
+            .where(self._table.c.app_id == app_id)
+            .where(self._table.c.market_hash_name == market_hash_name)
+            .where(self._table.c.currency == currency)
+        )
+
+    async def get_all(
+            self, app_id: int, currency: int, offset: int = None, count: int = None
+    ) -> list[T]:
+        stmt = select(self._select) \
+            .where(self._table.c.app_id == app_id) \
+            .where(self._table.c.currency == currency)
+        if count:
+            stmt = stmt.limit(count)
+        if offset:
+            stmt = stmt.offset(offset)
+        return await super(AppCurrencyBasedRepository, self)._get_all(stmt)
+
+
+class GameRepository(BaseRepository[Game], IGameRepository):
+    def __init__(self, session: AsyncSession):
+        super().__init__(session, game_table, {"name"}, Game)
+
+    async def remove(self, app_id: int):
+        await super(GameRepository).remove(
+            delete(self._table).where(self._table.c.app_id == app_id)
+        )
+
+    async def get(self, app_id: int) -> Game | None:
+        return await super(GameRepository).get(
+            select(self._table).where(self._table.c.app_id == app_id)
+        )
+
+    async def get_all(self, offset: int = None, count: int = None) -> list[Game]:
+        stmt = select(self._table)
+        if offset:
+            stmt = stmt.offset(offset)
+        if count:
+            stmt = stmt.limit(count)
+        return await super(GameRepository, self)._get_all(stmt)
+
+
+class MarketItemInfoRepository(AppCurrencyBasedRepository[MarketItemInfo],
+                               IMarketItemInfoRepository):
+    def __init__(self, session: AsyncSession):
+        super(MarketItemInfoRepository, self).__init__(
+            session, market_item_info_table,
+            {"sell_listings", "sell_price",
+             "sell_price_no_fee"},
+            [
+                market_item_info_table.c.app_id,
+                market_item_info_table.c.market_hash_name,
+                market_item_info_table.c.currency,
+                market_item_info_table.c.sell_listings,
+                market_item_info_table.c.sell_price,
+                market_item_info_table.c.sell_price_no_fee,
+            ],
+            MarketItemInfo
+        )
+
+
+class MarketItemRepository(BaseRepository[MarketItem], IMarketItemRepository):
+    def __init__(self, session: AsyncSession):
+        super(MarketItemRepository, self).__init__(session, market_item_table,
+                                                   {"market_fee", "market_marketable_restriction",
+                                                    "market_tradable_restriction", "commodity"},
+                                                   MarketItem)
+        self._select = [
+            market_item_table.c.app_id,
+            market_item_table.c.market_hash_name,
+            market_item_table.c.market_fee,
+            market_item_table.c.market_marketable_restriction,
+            market_item_table.c.market_tradable_restriction,
+            market_item_table.c.commodity,
+        ]
+
     async def remove(self, app_id: int, market_hash_name: str):
-        await self._session.execute(
+        await super(MarketItemRepository, self)._remove(
             delete(market_item_table)
             .where(market_item_table.c.app_id == app_id)
             .where(market_item_table.c.market_hash_name == market_hash_name)
         )
 
     async def get(self, app_id: int, market_hash_name: str) -> MarketItem | None:
-        result = await self._session.execute(
-            select(
-                [
-                    market_item_table.c.app_id,
-                    market_item_table.c.market_hash_name,
-                    market_item_table.c.market_fee,
-                    market_item_table.c.market_marketable_restriction,
-                    market_item_table.c.market_tradable_restriction,
-                    market_item_table.c.commodity,
-                ]
-            )
+        return await super(MarketItemRepository, self)._get(
+            select(self._select)
             .where(market_item_table.c.app_id == app_id)
             .where(market_item_table.c.market_hash_name == market_hash_name)
         )
-        row = result.fetchone()
-        if row:
-            return MarketItem(**row)
-        else:
-            return None
 
-    async def get_all(self, app_id: int) -> list[MarketItem]:
-        result = await self._session.execute(
-            select(
-                [
-                    market_item_table.c.app_id,
-                    market_item_table.c.market_hash_name,
-                    market_item_table.c.market_fee,
-                    market_item_table.c.market_marketable_restriction,
-                    market_item_table.c.market_tradable_restriction,
-                    market_item_table.c.commodity,
-                ]
-            ).where(market_item_table.c.app_id == app_id)
-        )
-        rows = result.fetchall()
-        return [MarketItem(**row) for row in rows]
+    async def get_all(self, app_id: int, offset: int = None, count: int = None) -> list[MarketItem]:
+        stmt = select(self._select).where(market_item_table.c.app_id == app_id)
+        if offset:
+            stmt = stmt.offset(offset)
+        if count:
+            stmt = stmt.limit(count)
+        return await super(MarketItemRepository, self)._get_all(stmt)
 
 
-class MarketItemOrdersRepository(IMarketItemOrdersRepository):
+class MarketItemOrdersRepository(AppCurrencyBasedRepository[MarketItemOrders],
+                                 IMarketItemOrdersRepository):
     def __init__(self, session: AsyncSession):
         self._session = session
-
-    async def add(self, item: MarketItemOrders):
-        await self._session.execute(insert(market_item_orders_table).values(asdict(item)))
-
-    async def add_or_update(self, item: MarketItemOrders):
-        await self._session.execute(
-            insert(market_item_orders_table)
-            .values(asdict(item))
-            .on_conflict_do_update(
-                constraint=market_item_orders_table.primary_key,
-                set_={
-                    "timestamp": item.timestamp,
-                    "dump": item.dump,
-                    "buy_count": item.buy_count,
-                    "buy_order": item.buy_order,
-                    "sell_count": item.sell_count,
-                    "sell_order": item.sell_order,
-                    "sell_order_no_fee": item.sell_order_no_fee,
-                },
-            )
+        super(MarketItemOrdersRepository, self).__init__(
+            session, market_item_orders_table,
+            {"timestamp", "dump", "buy_count",
+             "buy_order", "sell_count", "sell_order",
+             "sell_order_no_fee"}, [
+                market_item_orders_table.c.app_id,
+                market_item_orders_table.c.market_hash_name,
+                market_item_orders_table.c.currency,
+                market_item_orders_table.c.timestamp,
+                market_item_orders_table.c.dump,
+                market_item_orders_table.c.buy_count,
+                market_item_orders_table.c.buy_order,
+                market_item_orders_table.c.sell_count,
+                market_item_orders_table.c.sell_order,
+                market_item_orders_table.c.sell_order_no_fee,
+            ],
+            MarketItemOrders
         )
 
-    async def remove(self, app_id: int, market_hash_name: str, currency: int):
-        await self._session.execute(
-            delete(market_item_orders_table)
-            .where(market_item_orders_table.c.app_id == app_id)
-            .where(market_item_orders_table.c.market_hash_name == market_hash_name)
+    async def yield_all(self, app_id: int, currency: int, count: int) -> list[MarketItemOrders]:
+        stmt = select(self._select)\
+            .where(market_item_orders_table.c.app_id == app_id)\
             .where(market_item_orders_table.c.currency == currency)
-        )
 
-    async def get(
-        self, app_id: int, market_hash_name: str, currency: int
-    ) -> MarketItemOrders | None:
-        result = await self._session.execute(
-            select(
-                [
-                    market_item_orders_table.c.app_id,
-                    market_item_orders_table.c.market_hash_name,
-                    market_item_orders_table.c.currency,
-                    market_item_orders_table.c.timestamp,
-                    market_item_orders_table.c.dump,
-                    market_item_orders_table.c.buy_count,
-                    market_item_orders_table.c.buy_order,
-                    market_item_orders_table.c.sell_count,
-                    market_item_orders_table.c.sell_order,
-                    market_item_orders_table.c.sell_order_no_fee,
-                ]
-            )
-            .where(market_item_orders_table.c.app_id == app_id)
-            .where(market_item_orders_table.c.market_hash_name == market_hash_name)
-            .where(market_item_orders_table.c.currency == currency)
-        )
-        row = result.fetchone()
-        if row:
-            return MarketItemOrders(**row)
-        else:
-            return None
+        async_result = await self._session.stream(stmt)
+
+        while rows := await async_result.fetchmany(count):
+            yield [MarketItemOrders(**row) for row in rows]
 
 
-class MarketItemSellHistoryRepository(IMarketItemSellHistoryRepository):
+class MarketItemSellHistoryRepository(AppCurrencyBasedRepository[MarketItemSellHistory],
+                                      IMarketItemSellHistoryRepository):
     def __init__(self, session: AsyncSession):
-        self._session = session
-
-    async def add(self, item: MarketItemSellHistory):
-        await self._session.execute(insert(market_item_sell_history_table).values(asdict(item)))
-
-    async def add_or_update(self, item: MarketItemSellHistory):
-        await self._session.execute(
-            insert(market_item_sell_history_table)
-            .values(asdict(item))
-            .on_conflict_do_update(
-                constraint=market_item_sell_history_table.primary_key,
-                set_={
-                    "timestamp": item.timestamp,
-                    "history": item.history,
-                },
-            )
+        super(MarketItemSellHistoryRepository, self).__init__(
+            session,
+            market_item_sell_history_table,
+            {"timestamp", "history"}, [
+                market_item_sell_history_table.c.app_id,
+                market_item_sell_history_table.c.market_hash_name,
+                market_item_sell_history_table.c.currency,
+                market_item_sell_history_table.c.timestamp,
+                market_item_sell_history_table.c.history,
+            ],
+            MarketItemSellHistory
         )
 
-    async def remove(self, app_id: int, market_hash_name: str, currency: int):
-        await self._session.execute(
-            delete(market_item_sell_history_table)
-            .where(market_item_sell_history_table.c.app_id == app_id)
-            .where(market_item_sell_history_table.c.market_hash_name == market_hash_name)
-            .where(market_item_sell_history_table.c.currency == currency)
-        )
 
-    async def get(
-        self, app_id: int, market_hash_name: str, currency: int
-    ) -> MarketItemSellHistory | None:
-        result = await self._session.execute(
-            select(
-                [
-                    market_item_sell_history_table.c.app_id,
-                    market_item_sell_history_table.c.market_hash_name,
-                    market_item_sell_history_table.c.currency,
-                    market_item_sell_history_table.c.timestamp,
-                    market_item_sell_history_table.c.history,
-                ]
-            )
-            .where(market_item_sell_history_table.c.app_id == app_id)
-            .where(market_item_sell_history_table.c.market_hash_name == market_hash_name)
-            .where(market_item_sell_history_table.c.currency == currency)
-        )
-        row = result.fetchone()
-        if row:
-            return MarketItemSellHistory(**row)
-        else:
-            return None
-
-
-class MarketItemNameIdRepository(IMarketItemNameIdRepository):
+class MarketItemNameIdRepository(BaseRepository[MarketItemNameId], IMarketItemNameIdRepository):
     def __init__(self, session: AsyncSession):
-        self._session = session
-
-    async def add(self, item: MarketItemNameId):
-        await self._session.execute(insert(market_item_name_id_table).values(asdict(item)))
-
-    async def add_or_ignore(self, item: MarketItemNameId):
-        await self._session.execute(
-            insert(market_item_name_id_table)
-            .values(asdict(item))
-            .on_conflict_do_nothing(
-                constraint=market_item_name_id_table.primary_key,
-            )
+        super(MarketItemNameIdRepository, self).__init__(
+            session, market_item_name_id_table,
+            {"item_name_id"},
+            MarketItemNameId
         )
+        self._select = [
+            market_item_name_id_table.c.app_id,
+            market_item_name_id_table.c.market_hash_name,
+            market_item_name_id_table.c.item_name_id,
+        ]
 
     async def remove(self, app_id: int, market_hash_name: str):
-        await self._session.execute(
+        await super(MarketItemNameIdRepository, self)._remove(
             delete(market_item_name_id_table)
             .where(market_item_name_id_table.c.app_id == app_id)
             .where(market_item_name_id_table.c.market_hash_name == market_hash_name)
         )
 
     async def get(self, app_id: int, market_hash_name: str) -> MarketItemNameId | None:
-        result = await self._session.execute(
+        return await super(MarketItemNameIdRepository, self)._get(
             select(
-                [
-                    market_item_name_id_table.c.app_id,
-                    market_item_name_id_table.c.market_hash_name,
-                    market_item_name_id_table.c.item_name_id,
-                ]
+                self._select
             )
             .where(market_item_name_id_table.c.app_id == app_id)
             .where(market_item_name_id_table.c.market_hash_name == market_hash_name)
         )
-        row = result.fetchone()
-        if row:
-            return MarketItemNameId(**row)
-        else:
-            return None
 
-    async def get_all(self, app_id: int) -> list[MarketItemNameId]:
-        result = await self._session.execute(
-            select(
-                [
-                    market_item_name_id_table.c.app_id,
-                    market_item_name_id_table.c.market_hash_name,
-                    market_item_name_id_table.c.item_name_id,
-                ]
-            ).where(market_item_name_id_table.c.app_id == app_id)
-        )
-        rows = result.fetchall()
-        return [MarketItemNameId(**row) for row in rows]
+    async def get_all(self, app_id: int, offset: int = None, count: int = None) -> list[
+        MarketItemNameId]:
+        stmt = select(self._select).where(market_item_name_id_table.c.app_id == app_id)
+        if offset:
+            stmt = stmt.offset(offset)
+        if count:
+            stmt = stmt.limit(count)
+        return await super(MarketItemNameIdRepository, self)._get_all(stmt)
 
 
-class SellHistoryAnalyzeResultRepository(ISellHistoryAnalyzeResultRepository):
+class SellHistoryAnalyzeResultRepository(AppCurrencyBasedRepository[SellHistoryAnalyzeResult],
+                                         ISellHistoryAnalyzeResultRepository):
     def __init__(self, session: AsyncSession):
-        self._session = session
-
-    async def add(self, item: SellHistoryAnalyzeResult):
-        await self._session.execute(insert(sell_history_analyze_result_table).values(asdict(item)))
-
-    async def add_or_update(self, item: SellHistoryAnalyzeResult):
-        await self._session.execute(
-            insert(sell_history_analyze_result_table)
-            .values(asdict(item))
-            .on_conflict_do_update(
-                constraint=sell_history_analyze_result_table.primary_key,
-                set_={
-                    "timestamp": item.timestamp,
-                    "sells_last_day": item.sells_last_day,
-                    "sells_last_week": item.sells_last_week,
-                    "sells_last_month": item.sells_last_month,
-                    "recommended": item.recommended,
-                    "deviation": item.deviation,
-                    "sell_order": item.sell_order,
-                    "sell_order_no_fee": item.sell_order_no_fee,
-                },
-            )
+        super(SellHistoryAnalyzeResultRepository, self).__init__(
+            session,
+            sell_history_analyze_result_table,
+            {
+                "timestamp",
+                "sells_last_day",
+                "sells_last_week",
+                "sells_last_month",
+                "recommended",
+                "deviation",
+                "sell_order",
+                "sell_order_no_fee",
+            }, [
+                sell_history_analyze_result_table.c.app_id,
+                sell_history_analyze_result_table.c.market_hash_name,
+                sell_history_analyze_result_table.c.currency,
+                sell_history_analyze_result_table.c.timestamp,
+                sell_history_analyze_result_table.c.sells_last_day,
+                sell_history_analyze_result_table.c.sells_last_week,
+                sell_history_analyze_result_table.c.sells_last_month,
+                sell_history_analyze_result_table.c.recommended,
+                sell_history_analyze_result_table.c.deviation,
+                sell_history_analyze_result_table.c.sell_order,
+                sell_history_analyze_result_table.c.sell_order_no_fee,
+            ],
+        SellHistoryAnalyzeResult
         )
 
-    async def remove(self, app_id: int, market_hash_name: str, currency: int):
-        await self._session.execute(
-            delete(sell_history_analyze_result_table)
-            .where(sell_history_analyze_result_table.c.app_id == app_id)
-            .where(sell_history_analyze_result_table.c.market_hash_name == market_hash_name)
+    async def yield_all(self, app_id: int, currency: int, count: int) -> list[SellHistoryAnalyzeResult]:
+        stmt = select(self._select)\
+            .where(sell_history_analyze_result_table.c.app_id == app_id)\
             .where(sell_history_analyze_result_table.c.currency == currency)
-        )
 
-    async def get(
-        self, app_id: int, market_hash_name: str, currency: int
-    ) -> SellHistoryAnalyzeResult | None:
-        result = await self._session.execute(
-            select(
-                [
-                    sell_history_analyze_result_table.c.app_id,
-                    sell_history_analyze_result_table.c.market_hash_name,
-                    sell_history_analyze_result_table.c.currency,
-                    sell_history_analyze_result_table.c.timestamp,
-                    sell_history_analyze_result_table.c.sells_last_day,
-                    sell_history_analyze_result_table.c.sells_last_week,
-                    sell_history_analyze_result_table.c.sells_last_month,
-                    sell_history_analyze_result_table.c.recommended,
-                    sell_history_analyze_result_table.c.deviation,
-                    sell_history_analyze_result_table.c.sell_order,
-                    sell_history_analyze_result_table.c.sell_order_no_fee,
-                ]
-            )
-            .where(sell_history_analyze_result_table.c.app_id == app_id)
-            .where(sell_history_analyze_result_table.c.market_hash_name == market_hash_name)
-            .where(sell_history_analyze_result_table.c.currency == currency)
-        )
-        row = result.fetchone()
-        if row:
-            return SellHistoryAnalyzeResult(**row)
-        else:
-            return None
+        async_result = await self._session.stream(stmt)
+
+        while rows := await async_result.fetchmany(count):
+            yield [SellHistoryAnalyzeResult(**row) for row in rows]

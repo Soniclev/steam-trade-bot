@@ -56,10 +56,10 @@ async def main(
     # )
 
     await market_item_importer_from_page.import_from_all_games(currency=DEFAULT_CURRENCY)
+    # await market_item_importer_from_page.import_from_db(app_id=730, currency=DEFAULT_CURRENCY)
     # await market_item_importer_from_page.import_item(app_id=440, market_hash_name="Mann Co. Supply Munition Series #91" ,currency=DEFAULT_CURRENCY)
-
     await market_item_importer_from_orders.import_orders_from_all_games(currency=DEFAULT_CURRENCY)
-    # await market_item_importer.import_orders_from_db(app_id=730, currency=1)
+    # await market_item_importer_from_orders.import_orders_from_db(app_id=753, currency=1)
     # await market_item_importer.import_item_orders(app_id=730, market_hash_name="Danger Zone Case")
 
     # await market_item_importer.import_from_all_games(currency=1)
