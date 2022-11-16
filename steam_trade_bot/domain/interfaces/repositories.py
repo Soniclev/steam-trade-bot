@@ -13,7 +13,15 @@ from steam_trade_bot.domain.entities.market import (
 
 class IGameRepository(ABC):
     @abstractmethod
-    async def add(self, game: Game):
+    async def add(self, games: list[Game]):
+        ...
+
+    @abstractmethod
+    async def add_or_update(self, games: list[Game]):
+        ...
+
+    @abstractmethod
+    async def add_or_ignore(self, games: list[Game]):
         ...
 
     @abstractmethod
@@ -25,13 +33,21 @@ class IGameRepository(ABC):
         ...
 
     @abstractmethod
-    async def get_all(self) -> list[Game]:
+    async def get_all(self, offset: int = None, count: int = None) -> list[Game]:
         ...
 
 
 class IMarketItemRepository(ABC):
     @abstractmethod
-    async def add(self, item: MarketItem):
+    async def add(self, items: list[MarketItem]):
+        ...
+
+    @abstractmethod
+    async def add_or_update(self, items: list[MarketItem]):
+        ...
+
+    @abstractmethod
+    async def add_or_ignore(self, items: list[MarketItem]):
         ...
 
     @abstractmethod
@@ -42,18 +58,22 @@ class IMarketItemRepository(ABC):
     async def get(self, app_id: int, market_hash_name: str) -> MarketItem | None:
         ...
 
+    @abstractmethod
+    async def get_all(self, app_id: int, offset: int = None, count: int = None) -> list[MarketItem]:
+        ...
+
 
 class IMarketItemInfoRepository(ABC):
     @abstractmethod
-    async def add(self, item: MarketItemInfo):
+    async def add(self, items: list[MarketItemInfo]):
         ...
 
     @abstractmethod
-    async def add_or_update(self, item: MarketItemInfo):
+    async def add_or_update(self, items: list[MarketItemInfo]):
         ...
 
     @abstractmethod
-    async def add_or_update_bulk(self, item: MarketItemInfo):
+    async def add_or_ignore(self, items: list[MarketItemInfo]):
         ...
 
     @abstractmethod
@@ -64,14 +84,22 @@ class IMarketItemInfoRepository(ABC):
     async def get(self, app_id: int, market_hash_name: str, currency: int) -> MarketItemInfo | None:
         ...
 
+    @abstractmethod
+    async def get_all(self, app_id: int, currency: int, offset: int = None, count: int = None) -> list[MarketItemInfo]:
+        ...
+
 
 class IMarketItemOrdersRepository(ABC):
     @abstractmethod
-    async def add(self, item: MarketItemOrders):
+    async def add(self, items: list[MarketItemOrders]):
         ...
 
     @abstractmethod
-    async def add_or_update(self, item: MarketItemOrders):
+    async def add_or_update(self, items: list[MarketItemOrders]):
+        ...
+
+    @abstractmethod
+    async def add_or_ignore(self, items: list[MarketItemOrders]):
         ...
 
     @abstractmethod
@@ -84,14 +112,24 @@ class IMarketItemOrdersRepository(ABC):
     ) -> MarketItemOrders | None:
         ...
 
+    @abstractmethod
+    async def get_all(
+            self, app_id: int, currency: int, offset: int = None, count: int = None
+    ) -> list[MarketItemOrders]:
+        ...
+
 
 class IMarketItemNameIdRepository(ABC):
     @abstractmethod
-    async def add(self, item: MarketItemNameId):
+    async def add(self, items: list[MarketItemNameId]):
         ...
 
     @abstractmethod
-    async def add_or_ignore(self, item: MarketItemNameId):
+    async def add_or_update(self, item: list[MarketItemNameId]):
+        ...
+
+    @abstractmethod
+    async def add_or_ignore(self, item: list[MarketItemNameId]):
         ...
 
     @abstractmethod
@@ -103,17 +141,21 @@ class IMarketItemNameIdRepository(ABC):
         ...
 
     @abstractmethod
-    async def get_all(self, app_id: int) -> list[MarketItemNameId]:
+    async def get_all(self, app_id: int, offset: int = None, count: int = None) -> list[MarketItemNameId]:
         ...
 
 
 class IMarketItemSellHistoryRepository(ABC):
     @abstractmethod
-    async def add(self, item: MarketItemSellHistory):
+    async def add(self, items: list[MarketItemSellHistory]):
         ...
 
     @abstractmethod
-    async def add_or_update(self, item: MarketItemSellHistory):
+    async def add_or_update(self, items: list[MarketItemSellHistory]):
+        ...
+
+    @abstractmethod
+    async def add_or_ignore(self, items: list[MarketItemSellHistory]):
         ...
 
     @abstractmethod
@@ -126,14 +168,24 @@ class IMarketItemSellHistoryRepository(ABC):
     ) -> MarketItemSellHistory | None:
         ...
 
+    @abstractmethod
+    async def get_all(
+            self, app_id: int, currency: int, offset: int = None, count: int = None
+    ) -> list[MarketItemSellHistory]:
+        ...
+
 
 class ISellHistoryAnalyzeResultRepository(ABC):
     @abstractmethod
-    async def add(self, item: SellHistoryAnalyzeResult):
+    async def add(self, items: list[SellHistoryAnalyzeResult]):
         ...
 
     @abstractmethod
-    async def add_or_update(self, item: SellHistoryAnalyzeResult):
+    async def add_or_update(self, items: list[SellHistoryAnalyzeResult]):
+        ...
+
+    @abstractmethod
+    async def add_or_ignore(self, items: list[SellHistoryAnalyzeResult]):
         ...
 
     @abstractmethod
@@ -144,4 +196,10 @@ class ISellHistoryAnalyzeResultRepository(ABC):
     async def get(
         self, app_id: int, market_hash_name: str, currency: int
     ) -> SellHistoryAnalyzeResult | None:
+        ...
+
+    @abstractmethod
+    async def get_all(
+            self, app_id: int, currency: int, offset: int = None, count: int = None
+    ) -> list[SellHistoryAnalyzeResult]:
         ...

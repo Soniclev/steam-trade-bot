@@ -231,14 +231,10 @@ class MarketItemImporterFromSearch(BaseMarketItemImporter):
 
     async def _process_response(self, resp: dict, currency: int):
         items = resp["results"]
+        apps = {item["asset_description"]["appid"]: item["app_name"] for item in items}
+        games = [Game(app_id=app_id, name=app_name) for app_id, app_name in apps.items()]
         async with self._uow() as uow:
-            apps = {item["asset_description"]["appid"]: item["app_name"] for item in items}
-            existed_games = await uow.game.get_all()
-            existed_app_ids = [game.app_id for game in existed_games]
-
-            for app_id, app_name in apps.items():
-                if app_id not in existed_app_ids:
-                    await uow.game.add_or_ignore(Game(app_id=app_id, name=app_name))
+            await uow.game.add_or_ignore(games)
             await uow.commit()
 
         market_items = []
@@ -277,18 +273,10 @@ class MarketItemImporterFromSearch(BaseMarketItemImporter):
         for _ in range(100):
             try:
                 async with self._uow() as uow:
-                    await uow.market_item.add_or_update_bulk(market_items)
-                    # for market_item in market_items:
-                    #     await uow.market_item.add_or_update(
-                    #         market_item
-                    #     )
-                    await uow.market_item_info.add_or_update_bulk(market_item_infos)
-                    # for market_item_info in market_item_infos:
-                    #     await uow.market_item_info.add_or_update(
-                    #         market_item_info
-                    #     )
+                    await uow.market_item.add_or_update(market_items)
+                    await uow.market_item_info.add_or_update(market_item_infos)
                     await uow.commit()
-                    _log.info(f"Added or updated {len(items)} items")
+                    _log.info(f"Updated {len(items)} items")
                     break
             except SerializationError:
                 _log.info("SerializationError, trying to again to save")
@@ -321,23 +309,22 @@ class MarketItemImporterFromPage(BaseMarketItemImporter):
             await uow.commit()
 
         for game in apps:
-            if game.app_id in {753}:
-                continue
             _log.info(f"Importing items from {game=}")
             await self.import_from_db(app_id=game.app_id, currency=currency)
-        await self.import_from_db(app_id=753, currency=currency)
 
     async def import_from_db(self, app_id: int, currency: int):
         to_import = []
         async with self._uow() as uow:
-            market_item_infos = await uow.market_item_info.get_all(app_id, currency)
-            for mii in market_item_infos:
-                if not await uow.sell_history_analyze_result.get(
-                        app_id=mii.app_id,
-                        market_hash_name=mii.market_hash_name,
-                        currency=mii.currency,
-                ):
-                    to_import.append(mii)
+            market_item_infos = {mii.market_hash_name: mii for mii in
+                                 await uow.market_item_info.get_all(app_id, currency)}
+            existed_market_names = set(market_item_infos.keys())
+            async for results in uow.sell_history_analyze_result.yield_all(
+                    app_id=app_id,
+                    currency=currency,
+                    count=1000,
+            ):
+                market_names = set(map(attrgetter('market_hash_name'), results))
+                to_import.extend([market_item_infos[x] for x in market_names-existed_market_names])
             await uow.commit()
 
         queue = Queue()
@@ -358,18 +345,22 @@ class MarketItemImporterFromPage(BaseMarketItemImporter):
                 market_item_info = queue.get_nowait()
             except QueueEmpty:
                 break
-            _log.info(f"[{id_}] Importing {market_item_info.app_id} - {market_item_info.market_hash_name}")
+            _log.info(
+                f"[{id_}] Importing {market_item_info.app_id} - {market_item_info.market_hash_name}")
             try:
                 await self.import_item(
                     market_item_info.app_id, market_item_info.market_hash_name, currency
                 )
             except (NoListingsException, InvalidMarketItemException) as exc:
                 if isinstance(exc, NoListingsException):
-                    _log.info(f"No listings for for {exc.app_id} - {exc.market_hash_name}. Deleting this market item")
+                    _log.info(
+                        f"No listings for for {exc.app_id} - {exc.market_hash_name}. Deleting this market item")
                 elif isinstance(exc, InvalidMarketItemException):
-                    _log.info(f"Found invalid market item definition {exc.app_id} - {exc.market_hash_name}. Deleting this market item")
+                    _log.info(
+                        f"Found invalid market item definition {exc.app_id} - {exc.market_hash_name}. Deleting this market item")
                 async with self._uow() as uow:
-                    await uow.market_item.remove(app_id=exc.app_id, market_hash_name=exc.market_hash_name)
+                    await uow.market_item.remove(app_id=exc.app_id,
+                                                 market_hash_name=exc.market_hash_name)
                     await uow.commit()
                 _log.info(f"Successfully deleted market item {exc.app_id} - {exc.market_hash_name}")
             except Exception as exc:
@@ -395,7 +386,8 @@ class MarketItemImporterFromPage(BaseMarketItemImporter):
                     steam_session, self._settings.too_many_requests_postpone
                 )
             elif exc.status == 404:
-                raise InvalidMarketItemException(app_id=app_id, market_hash_name=market_hash_name) from exc
+                raise InvalidMarketItemException(app_id=app_id,
+                                                 market_hash_name=market_hash_name) from exc
             else:
                 raise
 
@@ -454,10 +446,10 @@ class MarketItemImporterFromPage(BaseMarketItemImporter):
             app_id=app_id, market_hash_name=market_hash_name, item_name_id=item_nameid
         )
         async with self._uow() as uow:
-            await uow.market_item.add_or_update(market_item)
-            await uow.sell_history.add_or_update(history)
-            await uow.sell_history_analyze_result.add_or_update(analyze_result)
-            await uow.market_item_name_id.add_or_ignore(item_name_id)
+            await uow.market_item.add_or_update([market_item])
+            await uow.sell_history.add_or_update([history])
+            await uow.sell_history_analyze_result.add_or_update([analyze_result])
+            await uow.market_item_name_id.add_or_ignore([item_name_id])
             await uow.commit()
 
 
@@ -477,23 +469,25 @@ class MarketItemImporterFromOrdersHistogram(BaseMarketItemImporter):
             await uow.commit()
 
         for game in apps:
-            if game.app_id in {753}:
-                continue
             _log.info(f"Importing items orders from {game=}")
             await self.import_orders_from_db(app_id=game.app_id, currency=currency)
-        await self.import_orders_from_db(app_id=753, currency=currency)
 
     async def import_orders_from_db(self, app_id: int, currency: int):
         to_import = []
         async with self._uow() as uow:
-            market_item_ids = await uow.market_item_name_id.get_all(app_id)
-            for mii in market_item_ids:
-                if not await uow.market_item_orders.get(
-                        app_id=mii.app_id,
-                        market_hash_name=mii.market_hash_name,
-                        currency=currency,
+            market_item_ids = {
+                mii.market_hash_name: mii
+                for mii in await uow.market_item_name_id.get_all(app_id)
+            }
+            existed_market_names = set(market_item_ids.keys())
+            async for results in uow.market_item_orders.yield_all(
+                    app_id=app_id,
+                    currency=currency,
+                    count=1000,
                 ):
-                    to_import.append(mii)
+                market_names = set(map(attrgetter('market_hash_name'), results))
+                to_import.extend([market_item_ids[x] for x in market_names-existed_market_names])
+
             await uow.commit()
 
         queue = Queue()
@@ -514,7 +508,8 @@ class MarketItemImporterFromOrdersHistogram(BaseMarketItemImporter):
                 market_item_info = queue.get_nowait()
             except QueueEmpty:
                 break
-            _log.info(f"[{id_}] Importing item orders {market_item_info.app_id} - {market_item_info.market_hash_name}")
+            _log.info(
+                f"[{id_}] Importing item orders {market_item_info.app_id} - {market_item_info.market_hash_name}")
             try:
                 await self.import_item_orders(
                     market_item_info.app_id, market_item_info.market_hash_name, currency
@@ -636,6 +631,6 @@ class MarketItemImporterFromOrdersHistogram(BaseMarketItemImporter):
         )
 
         async with self._uow() as uow:
-            await uow.market_item_info.add_or_update(market_item_info)
-            await uow.market_item_orders.add_or_update(market_item_orders)
+            await uow.market_item_info.add_or_update([market_item_info])
+            await uow.market_item_orders.add_or_update([market_item_orders])
             await uow.commit()
