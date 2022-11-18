@@ -312,6 +312,15 @@ class MarketItemImporterFromPage(BaseMarketItemImporter):
             _log.info(f"Importing items from {game=}")
             await self.import_from_db(app_id=game.app_id, currency=currency)
 
+    async def update_all_games(self, currency: int, older: datetime | None = None):
+        async with self._uow() as uow:
+            apps = await uow.game.get_all()
+            await uow.commit()
+
+        for game in apps:
+            _log.info(f"Updating items from {game=}")
+            await self.update_from_db(app_id=game.app_id, currency=currency, older=older)
+
     async def import_from_db(self, app_id: int, currency: int):
         to_import = []
         async with self._uow() as uow:
@@ -339,6 +348,39 @@ class MarketItemImporterFromPage(BaseMarketItemImporter):
             ]
         )
 
+    async def update_from_db(self, app_id: int, currency: int, older: datetime | None = None):
+        to_import = []
+        async with self._uow() as uow:
+            market_item_infos = {mii.market_hash_name: mii for mii in
+                                 await uow.market_item_info.get_all(app_id, currency)}
+            async for results in uow.sell_history_analyze_result.yield_all(
+                    app_id=app_id,
+                    currency=currency,
+                    count=1000,
+            ):
+                for result in results:
+                    if older and result.timestamp >= older:
+                        continue
+                    if result.market_hash_name not in market_item_infos:
+                        continue
+                    mii = market_item_infos[result.market_hash_name]
+                    to_import.append((mii, result.timestamp))
+            await uow.commit()
+
+        sorted_to_import = sorted(market_item_infos, key=lambda x: x[1])
+
+        queue = Queue()
+
+        for market_item_info in sorted_to_import:
+            queue.put_nowait(market_item_info)
+
+        await asyncio.gather(
+            *[
+                self._run_import_item_worker(i + 1, queue, currency)
+                for i in range(self._settings.workers)
+            ]
+        )
+
     async def _run_import_item_worker(self, id_: int, queue: Queue, currency: int):
         while not queue.empty():
             try:
@@ -346,7 +388,7 @@ class MarketItemImporterFromPage(BaseMarketItemImporter):
             except QueueEmpty:
                 break
             _log.info(
-                f"[{id_}] Importing {market_item_info.app_id} - {market_item_info.market_hash_name}")
+                f"[{id_}] Processing {market_item_info.app_id} - {market_item_info.market_hash_name}")
             try:
                 await self.import_item(
                     market_item_info.app_id, market_item_info.market_hash_name, currency
@@ -502,6 +544,51 @@ class MarketItemImporterFromOrdersHistogram(BaseMarketItemImporter):
             ]
         )
 
+    async def update_orders(self, currency: int, older: datetime | None = None):
+        async with self._uow() as uow:
+            apps = await uow.game.get_all()
+            await uow.commit()
+
+        for game in apps:
+            _log.info(f"Updating items orders from {game=}")
+            await self.update_orders_from_db(app_id=game.app_id, currency=currency, older=older)
+
+    async def update_orders_from_db(self, app_id: int, currency: int, older: datetime | None = None):
+        to_import = []
+        async with self._uow() as uow:
+            market_item_ids = {
+                mii.market_hash_name: mii
+                for mii in await uow.market_item_name_id.get_all(app_id)
+            }
+            async for results in uow.market_item_orders.yield_all(
+                    app_id=app_id,
+                    currency=currency,
+                    count=1000,
+                ):
+                for result in results:
+                    if older and result.timestamp >= older:
+                        continue
+                    if result.market_hash_name not in market_item_ids:
+                        continue
+                    mii = market_item_ids[result.market_hash_name]
+                    to_import.append((mii, result.timestamp))
+
+            await uow.commit()
+
+        sorted_to_import = sorted(to_import, key=lambda x: x[1])
+
+        queue = Queue()
+
+        for market_item_info, timestamp in sorted_to_import:
+            queue.put_nowait(market_item_info)
+
+        await asyncio.gather(
+            *[
+                self._run_import_item_orders_worker(i + 1, queue, currency)
+                for i in range(self._settings.workers)
+            ]
+        )
+
     async def _run_import_item_orders_worker(self, id_: int, queue: Queue, currency: int):
         while not queue.empty():
             try:
@@ -509,7 +596,7 @@ class MarketItemImporterFromOrdersHistogram(BaseMarketItemImporter):
             except QueueEmpty:
                 break
             _log.info(
-                f"[{id_}] Importing item orders {market_item_info.app_id} - {market_item_info.market_hash_name}")
+                f"[{id_}] Processing item orders {market_item_info.app_id} - {market_item_info.market_hash_name}")
             try:
                 await self.import_item_orders(
                     market_item_info.app_id, market_item_info.market_hash_name, currency
