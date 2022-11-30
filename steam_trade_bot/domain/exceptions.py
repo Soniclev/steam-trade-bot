@@ -10,3 +10,7 @@ class CurrencyNotSupported(BotException):
 class ItemNameIdNotFound(BotException):
     def __init__(self, app_id: int, market_hash_name: str):
         super().__init__(f"Item_name_id for pair {app_id=} {market_hash_name=} not found!")
+
+
+class SerializationError(BotException):
+    ...
