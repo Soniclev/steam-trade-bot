@@ -3,7 +3,7 @@ from dataclasses import asdict
 from datetime import datetime
 from typing import TypeVar, Generic
 
-from asyncpg import SerializationError
+from steam_trade_bot.domain.exceptions import SerializationError
 from sqlalchemy import delete, select, Table
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import DBAPIError
@@ -56,7 +56,7 @@ class BaseRepository(Generic[T]):
         except DBAPIError as exc:
             if "<class 'asyncpg.exceptions.SerializationError'>: could not serialize access due to concurrent update" in \
                     exc.args[0]:
-                raise SerializationError
+                raise SerializationError from exc
             raise
 
     async def add_or_update(self, items: list[T]):
@@ -75,7 +75,7 @@ class BaseRepository(Generic[T]):
         except DBAPIError as exc:
             if "<class 'asyncpg.exceptions.SerializationError'>: could not serialize access due to concurrent update" in \
                     exc.args[0]:
-                raise SerializationError
+                raise SerializationError from exc
             raise
 
     async def add_or_ignore(self, items: list[T]):
@@ -89,7 +89,7 @@ class BaseRepository(Generic[T]):
         except DBAPIError as exc:
             if "<class 'asyncpg.exceptions.SerializationError'>: could not serialize access due to concurrent update" in \
                     exc.args[0]:
-                raise SerializationError
+                raise SerializationError from exc
             raise
 
     async def _remove(self, stmt):

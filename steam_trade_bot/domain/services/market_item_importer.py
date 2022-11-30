@@ -11,7 +11,7 @@ from typing import Callable
 from urllib.parse import urlparse, parse_qs, urlencode
 
 from aiohttp import ClientResponseError
-from asyncpg import SerializationError
+from steam_trade_bot.domain.exceptions import SerializationError
 
 from steam_trade_bot.domain.entities.market import (
     MarketItem,
