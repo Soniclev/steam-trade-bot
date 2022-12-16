@@ -300,11 +300,11 @@ html5lib = "*"
 
 [[package]]
 name = "fakeredis"
-version = "2.2.0"
+version = "2.3.0"
 description = "Fake implementation of redis API for testing purposes."
 category = "dev"
 optional = false
-python-versions = ">=3.7,<4.0"
+python-versions = ">=3.8.1,<4.0"
 
 [package.dependencies]
 redis = "<4.5"
@@ -820,7 +820,7 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "17a645bc35b20d3fdfe9cc4175bc07cd53f4d91c493f0882a05cdfedc7ed16c7"
+content-hash = "87618a740b31009d16c54ce239d106d9db96beaf9545156447153b2916a7cbc2"
 
 [metadata.files]
 aiohttp = [
@@ -1126,8 +1126,8 @@ fake-headers = [
     {file = "fake_headers-1.0.2-py3-none-any.whl", hash = "sha256:d5b0e05c2e52573f3d574ec06b7cf96bb330d8d80aa99fb41f62d6df24e8cf3d"},
 ]
 fakeredis = [
-    {file = "fakeredis-2.2.0-py3-none-any.whl", hash = "sha256:1ac7adf04dcbf8f9886add5972018e0e42781ee772fbaa0a573350cd4e4c66f7"},
-    {file = "fakeredis-2.2.0.tar.gz", hash = "sha256:dacdede58b0e682d5dc6176518858b6933c3d529ec18270f162ad5aaf97f5769"},
+    {file = "fakeredis-2.3.0-py3-none-any.whl", hash = "sha256:2ef195c7ecffb7341c7b7b9bf440ff8ca424d060ed4b492580bfe4d09dddf9ba"},
+    {file = "fakeredis-2.3.0.tar.gz", hash = "sha256:e101c2da0e95688a3db6a5874a70cd065fce3b46e8cec7122d19bb1d0fdd1bfd"},
 ]
 freezegun = [
     {file = "freezegun-1.2.2-py3-none-any.whl", hash = "sha256:ea1b963b993cb9ea195adbd893a48d573fda951b0da64f60883d7e988b606c9f"},
