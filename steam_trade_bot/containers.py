@@ -6,6 +6,7 @@ from dependency_injector import containers, providers
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 
+from steam_trade_bot.domain.services.export_yaml import ExportYaml
 from steam_trade_bot.domain.services.market_item_importer import (
     MarketItemImporterFromSearch,
     MarketItemImporterFromOrdersHistogram,
@@ -104,6 +105,11 @@ class Services(containers.DeclarativeContainer):
 
     ste_export = providers.Singleton(
         STEExport,
+        repositories.unit_of_work.provider,
+    )
+
+    export_yaml = providers.Singleton(
+        ExportYaml,
         repositories.unit_of_work.provider,
     )
 
