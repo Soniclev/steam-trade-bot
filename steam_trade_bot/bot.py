@@ -11,6 +11,7 @@ from sqlalchemy.orm import sessionmaker
 from steam_trade_bot.consts import DEFAULT_CURRENCY
 from steam_trade_bot.containers import Container
 from steam_trade_bot.domain.entities.market import Game, MarketItem
+from steam_trade_bot.domain.services.export_yaml import ExportYaml
 from steam_trade_bot.domain.services.market_item_importer import (
     MarketItemImporterFromSearch,
     MarketItemImporterFromPage,
@@ -36,6 +37,7 @@ async def main(
     ],
     sell_history_analyzer: SellHistoryAnalyzer = Provide[Container.services.sell_history_analyzer],
     ste_export: STEExport = Provide[Container.services.ste_export],
+    export_yaml: ExportYaml = Provide[Container.services.export_yaml],
 ) -> None:
     pass
     # path = Path(
@@ -55,8 +57,10 @@ async def main(
     #     currency=DEFAULT_CURRENCY
     # )
 
-    await market_item_importer_from_orders.update_orders(DEFAULT_CURRENCY)
-    await market_item_importer_from_page.update_all_games(DEFAULT_CURRENCY)
+    await export_yaml.export(currency=DEFAULT_CURRENCY)
+
+    #await market_item_importer_from_orders.update_orders(DEFAULT_CURRENCY)
+    #await market_item_importer_from_page.update_all_games(DEFAULT_CURRENCY)
 
     # await market_item_importer_from_orders.update_orders_from_db(730, currency=DEFAULT_CURRENCY)
 

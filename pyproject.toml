@@ -102,3 +102,6 @@ pytest-dotenv = "^0.5.2"
 black = "^22.3.0"
 notebook = "^6.5.2"
 pandas = "^1.5.2"
+fastparquet = "^2022.12.0"
+pyspark = {version = "^3.3.1", extras = ["sql", "pandas_on_spark"]}
+plotly = "^5.11.0"
