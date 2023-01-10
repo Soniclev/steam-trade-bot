@@ -63,7 +63,7 @@ omit = [
 [tool.poetry.dependencies]
 python = "^3.10"
 dependency-injector = "^4.41.0"
-marshmallow-dataclass = "^8.5.10"
+marshmallow-dataclass = "^8.5.11"
 marshmallow = "^3.19.0"
 marshmallow-enum = "^1.5.1"
 dataclasses-json = "^0.5.7"
