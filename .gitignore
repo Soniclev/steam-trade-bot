@@ -95,3 +95,5 @@ dmypy.json
 .pytype/
 
 .idea
+
+parquet
