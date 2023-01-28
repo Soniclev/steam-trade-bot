@@ -52,6 +52,7 @@ warn_unused_configs = true
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+env_files = ["test.env"]
 
 [tool.coverage.run]
 omit = [
@@ -93,6 +94,7 @@ freezegun = "^1.2.1"
 mypy = "^0.991"
 types-PyYAML = "^6.0.12"
 python-dotenv = "^0.21.1"
+pytest-dotenv = "^0.5.2"
 black = "^22.12.0"
 notebook = "^6.5.2"
 pandas = "^1.5.2"
