@@ -63,7 +63,9 @@ def test_fee_from_1_cent_to_2000_bucks(game_fee):
         price = round(i / 100, 2)
         price_with_fee = compute_fee_from_payload(price, game=game_fee)
         backward_fee = compute_fee_from_total(price_with_fee.total, game=game_fee)
-        assert backward_fee.game == game_fee or 0.01
+        assert backward_fee.game >= 0.01
+        assert backward_fee.steam >= 0.01
+        assert backward_fee.total == round(backward_fee.payload + backward_fee.steam + backward_fee.game, 2)
         assert backward_fee.payload == price
         # need to check corner cases, like:
         # 0.19 -> 0.21
@@ -73,6 +75,8 @@ def test_fee_from_1_cent_to_2000_bucks(game_fee):
                 prev_price = round(prev_price + 0.01, 2)
                 price_with_fee = compute_fee_from_payload(prev_price, game=game_fee)
                 backward_fee = compute_fee_from_total(price_with_fee.total, game=game_fee)
-                assert backward_fee.game == game_fee or 0.01
+                assert backward_fee.game >= 0.01
+                assert backward_fee.steam >= 0.01
+                assert backward_fee.total == round(backward_fee.payload + backward_fee.steam + backward_fee.game, 2)
                 assert backward_fee.payload == price
         prev_price = price

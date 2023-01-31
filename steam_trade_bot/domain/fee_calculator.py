@@ -36,7 +36,8 @@ def compute_fee_from_payload(payload: float, game: float | None = None) -> Compu
     payload = round(payload, 2)
     steam_fee = math.floor(payload * WALLET_FEE_PERCENT * 100) / 100
     game_fee = math.floor(payload * (game or DEFAULT_PUBLISHER_FEE) * 100) / 100
-    total_fee = WALLET_FEE_BASE + max(game_fee, WALLET_FEE_MINIMUM) + max(steam_fee, WALLET_FEE_MINIMUM)
+    steam_fee, game_fee = max(steam_fee, WALLET_FEE_MINIMUM), max(game_fee, WALLET_FEE_MINIMUM)
+    total_fee = WALLET_FEE_BASE + game_fee + steam_fee
     total = round(payload + total_fee, 2)
     return ComputedFee(total=total, payload=payload, game=game_fee, steam=steam_fee)
 

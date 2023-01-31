@@ -427,6 +427,7 @@ class MarketItemImporterFromPage(BaseMarketItemImporter):
                 await self._steam_session_provider.postpone(
                     steam_session, self._settings.too_many_requests_postpone
                 )
+                raise TemporaryImportException
             elif exc.status == 404:
                 raise InvalidMarketItemException(app_id=app_id,
                                                  market_hash_name=market_hash_name) from exc
@@ -493,6 +494,7 @@ class MarketItemImporterFromPage(BaseMarketItemImporter):
             await uow.sell_history_analyze_result.add_or_update([analyze_result])
             await uow.market_item_name_id.add_or_ignore([item_name_id])
             await uow.commit()
+        _log.info(f"[{market_hash_name}] OK")
 
 
 class MarketItemImporterFromOrdersHistogram(BaseMarketItemImporter):
