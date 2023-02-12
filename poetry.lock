@@ -1074,19 +1074,19 @@ html5lib = "*"
 
 [[package]]
 name = "fakeredis"
-version = "2.6.0"
+version = "2.8.0"
 description = "Fake implementation of redis API for testing purposes."
 category = "dev"
 optional = false
 python-versions = ">=3.8.1,<4.0"
 files = [
-    {file = "fakeredis-2.6.0-py3-none-any.whl", hash = "sha256:94c7867edc259b81c55b93902e81a727cc1986ba09de3fcf9df51a3ad8e29b03"},
-    {file = "fakeredis-2.6.0.tar.gz", hash = "sha256:3f8f72c5b990a70ae69444dd1cfe0c9805811a53752d3d21fdcda29255b00e51"},
+    {file = "fakeredis-2.8.0-py3-none-any.whl", hash = "sha256:f1130bc2da77d5063c7aeee643b456d2bd486f3bd0236976646af1fb6b7e08fb"},
+    {file = "fakeredis-2.8.0.tar.gz", hash = "sha256:2d5487e765894714d08fca50351c3a224e705eb02c02b2d012c00ed98b979616"},
 ]
 
 [package.dependencies]
-redis = "<4.5"
-sortedcontainers = ">=2.4.0,<3.0.0"
+redis = ">=4,<5"
+sortedcontainers = ">=2.4,<3.0"
 
 [package.extras]
 json = ["jsonpath-ng (>=1.5,<2.0)"]
@@ -3965,4 +3965,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "613e829dc95f0b0ba9aff2e91e7090e7ba0b1cbad40af36f4991f5fcf81b28ef"
+content-hash = "ae3b3243c1017d78d7ad760c35ea949918a6d9dfa471baee2ff9d703ae0e1411"
