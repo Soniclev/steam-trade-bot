@@ -101,6 +101,6 @@ pandas = "^1.5.2"
 fastparquet = "^2023.1.0"
 pyspark = {version = "^3.3.1", extras = ["sql", "pandas_on_spark"]}
 plotly = "^5.11.0"
-boto3 = "^1.26.69"
+boto3 = "^1.26.71"
 aiofiles = "^22.1.0"
 matplotlib = "^3.7.0"
