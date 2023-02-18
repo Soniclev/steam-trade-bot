@@ -98,7 +98,7 @@ pytest-dotenv = "^0.5.2"
 black = "^23.1.0"
 jupyterlab = "^3.6.1"
 pandas = "^1.5.2"
-fastparquet = "^2023.1.0"
+fastparquet = "^2023.2.0"
 pyspark = {version = "^3.3.1", extras = ["sql", "pandas_on_spark"]}
 plotly = "^5.11.0"
 boto3 = "^1.26.72"
