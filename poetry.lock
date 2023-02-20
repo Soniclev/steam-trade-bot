@@ -1200,14 +1200,14 @@ html5lib = "*"
 
 [[package]]
 name = "fakeredis"
-version = "2.9.0"
+version = "2.9.2"
 description = "Fake implementation of redis API for testing purposes."
 category = "dev"
 optional = false
 python-versions = ">=3.8,<4.0"
 files = [
-    {file = "fakeredis-2.9.0-py3-none-any.whl", hash = "sha256:fc0c48216bb40a01e51b002c70966cd17242cf7406e7ced4ff85235f4971d096"},
-    {file = "fakeredis-2.9.0.tar.gz", hash = "sha256:ea29b10277efce23ade22ef33ccd273e365db658313ceace299e4027b066bbd6"},
+    {file = "fakeredis-2.9.2-py3-none-any.whl", hash = "sha256:35962e0ded572302c4461ad1a40308259cc10b7c546b13228e6d7880bf7b74bb"},
+    {file = "fakeredis-2.9.2.tar.gz", hash = "sha256:3bcc2b5c10d5e03cc5b46697d77c651f48391b506ff931576d2869c7549e2e25"},
 ]
 
 [package.dependencies]
@@ -4609,4 +4609,4 @@ test = ["mypy", "pre-commit", "pytest", "pytest-asyncio", "websockets (>=10.0)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "53f7d1aa99306f125508595e69a98dcea1571a5ac6a3e7464e1a040ba0381d23"
+content-hash = "33036c660bcc1a78f67d84ea6e3f60c07c3d1ac921b87b84164b293f4bbd6bed"
