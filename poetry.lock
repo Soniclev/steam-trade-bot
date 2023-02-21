@@ -3397,13 +3397,13 @@ files = [
 
 [[package]]
 name = "pyspark"
-version = "3.3.1"
+version = "3.3.2"
 description = "Apache Spark Python API"
 category = "dev"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "pyspark-3.3.1.tar.gz", hash = "sha256:e99fa7de92be406884bfd831c32b9306a3a99de44cfc39a2eefb6ed07445d5fa"},
+    {file = "pyspark-3.3.2.tar.gz", hash = "sha256:0dfd5db4300c1f6cc9c16d8dbdfb82d881b4b172984da71344ede1a9d4893da8"},
 ]
 
 [package.dependencies]
@@ -4609,4 +4609,4 @@ test = ["mypy", "pre-commit", "pytest", "pytest-asyncio", "websockets (>=10.0)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "42b9ac7fbbaa994d56f6ab94cc6578f0f98ae798fe8a105600b9f9b303c5f21c"
+content-hash = "fde09f3ff804e566b48cc1962d9d95c910eb2cbcb00306af142825c9cfbc0533"
