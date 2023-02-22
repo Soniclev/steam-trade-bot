@@ -556,18 +556,18 @@ css = ["tinycss2 (>=1.1.0,<1.2)"]
 
 [[package]]
 name = "boto3"
-version = "1.26.72"
+version = "1.26.77"
 description = "The AWS SDK for Python"
 category = "dev"
 optional = false
 python-versions = ">= 3.7"
 files = [
-    {file = "boto3-1.26.72-py3-none-any.whl", hash = "sha256:990997248716f12b296d7d30b3119a93347d73b7a4831c015e53aaebbd074a77"},
-    {file = "boto3-1.26.72.tar.gz", hash = "sha256:5d6e19d148c4a9d5d85f0d96570d11264f23db610f1e3c9a8b7e8b6898424691"},
+    {file = "boto3-1.26.77-py3-none-any.whl", hash = "sha256:17f0d782487275cac12676a61b3f1a4900954cc454c842b8551ca47a3dcd59b4"},
+    {file = "boto3-1.26.77.tar.gz", hash = "sha256:bf808f7433629650128ab577a9d4a0f4daf072d9f2f3a907b9d567a6952d9154"},
 ]
 
 [package.dependencies]
-botocore = ">=1.29.72,<1.30.0"
+botocore = ">=1.29.77,<1.30.0"
 jmespath = ">=0.7.1,<2.0.0"
 s3transfer = ">=0.6.0,<0.7.0"
 
@@ -576,14 +576,14 @@ crt = ["botocore[crt] (>=1.21.0,<2.0a0)"]
 
 [[package]]
 name = "botocore"
-version = "1.29.72"
+version = "1.29.77"
 description = "Low-level, data-driven core of boto 3."
 category = "dev"
 optional = false
 python-versions = ">= 3.7"
 files = [
-    {file = "botocore-1.29.72-py3-none-any.whl", hash = "sha256:77fff109e1bdbf030d8400ccab9d28454c03c7be62c1696a239b21792b0873df"},
-    {file = "botocore-1.29.72.tar.gz", hash = "sha256:8710f53af0e20f08f36a3bf434d18bc7ceba5d9835495b02aedbedd35df5de9a"},
+    {file = "botocore-1.29.77-py3-none-any.whl", hash = "sha256:d8aa7bffe2422de282b2d02945b7b45d5fecf00f67b65eebb0b1fa3de1abc6d0"},
+    {file = "botocore-1.29.77.tar.gz", hash = "sha256:9d94a02f2584b52c65fb3cb309fb1b29d6d0c36d69062722b0275c1c382c44c9"},
 ]
 
 [package.dependencies]
@@ -4609,4 +4609,4 @@ test = ["mypy", "pre-commit", "pytest", "pytest-asyncio", "websockets (>=10.0)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "fde09f3ff804e566b48cc1962d9d95c910eb2cbcb00306af142825c9cfbc0533"
+content-hash = "b8bbd216b5c485fe9144edeaeaa15b6c6898756f0eb4981163021b2270c8ac55"
