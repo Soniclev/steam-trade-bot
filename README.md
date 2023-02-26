@@ -9,18 +9,18 @@ Example usage:
 >>> compute_fee_from_payload(10.0)
 ComputedFee(total=11.5, payload=10.0, game=1.0, steam=0.5)
 
->>> compute_fee_from_payload(10.0, 0.2)
-ComputedFee(total=12.0, payload=10.0, game=2.0, steam=0.5)
+>>> compute_fee_from_payload(10.0, 0.15)  # for app_id=321360
+ComputedFee(total=12.0, payload=10.0, game=1.5, steam=0.5)
 
 >>> compute_fee_from_total(11.5)
 ComputedFee(total=11.5, payload=10.0, game=1.0, steam=0.5)
 
->>> compute_fee_from_total(12.0, 0.2)
-ComputedFee(total=12.0, payload=10.0, game=2.0, steam=0.5)
+>>> compute_fee_from_total(12.0, 0.15)  # for app_id=321360
+ComputedFee(total=12.0, payload=10.0, game=1.5, steam=0.5)
 ```
 
 # PostgresSQL dump for all items that available on the Steam market
-You can download the Steam market data dump covering the period from 2012-12 to 2022-11 from the following link: https://steam-bot.s3.eu-central-1.amazonaws.com/public/dump2.zip (619 MB, unzipped ~8GB). This dump includes information on all market item sales during this period and can be loaded into your PostgreSQL database to be used for analysis and research purposes. Also, you can check this [notebook](notebooks/Analyze%20Steam%20market.ipynb) in order to see plots showing summarized sold items amount and knifes by cheap price covering the period.
+You can download the Steam market data dump covering the period from 2012-12 to 2022-11 from the following link: https://steam-bot-public.s3.eu-central-1.amazonaws.com/dump2.zip (619 MB, unzipped ~8GB). This dump includes information on all market item sales during this period and can be loaded into your PostgreSQL database to be used for analysis and research purposes. Also, you can check this [notebook](notebooks/Analyze%20Steam%20market.ipynb) in order to see plots showing summarized sold items amount and knifes by cheap price covering the period.
 
 Here's a brief description of the tables:
 
