@@ -276,6 +276,16 @@ class MarketItemSellHistoryRepository(AppCurrencyBasedRepository[MarketItemSellH
             MarketItemSellHistory
         )
 
+    async def yield_all(self, app_id: int, currency: int, count: int) -> list[MarketItemSellHistory]:
+        stmt = select(self._select)\
+            .where(market_item_sell_history_table.c.app_id == app_id)\
+            .where(market_item_sell_history_table.c.currency == currency)
+
+        async_result = await self._session.stream(stmt)
+
+        while rows := await async_result.fetchmany(count):
+            yield [MarketItemSellHistory(**row) for row in rows]
+
 
 class MarketItemNameIdRepository(BaseRepository[MarketItemNameId], IMarketItemNameIdRepository):
     def __init__(self, session: AsyncSession):

@@ -65,8 +65,13 @@ def compute_fee_from_total(total: float, game: float | None = None) -> ComputedF
         raise ValueError("Game fee value is exceed [0;1] range")
     total = round(total, 2)
     est_payload = round(total / 1.15, 2)
+    _map = {}
     for _ in range(100):
         fee = compute_fee_from_payload(est_payload, game)
+        _map[fee.payload] = fee.total
+        if fee.payload in _map and round(fee.payload+0.01, 2) in _map:
+            if _map[fee.payload] < total < _map[round(fee.payload+0.01, 2)]:
+                return fee
         if fee.total == total:
             return fee
         elif fee.total > total:
@@ -74,5 +79,7 @@ def compute_fee_from_total(total: float, game: float | None = None) -> ComputedF
         else:
             diff = total - fee.total
             est_payload = round(est_payload + max(diff * 0.4, 0.01), 2)
+
+
 
     raise ValueError("Unable to compute fee with the provided parameters. Please check that the inputs are valid and try again.")

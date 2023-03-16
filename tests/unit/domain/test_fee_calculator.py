@@ -11,6 +11,7 @@ from steam_trade_bot.domain.fee_calculator import compute_fee_from_payload, comp
         (0.18, 0.2),
         (0.19, 0.21),
         (0.2, 0.23),
+        (0.49, 0.56),
         (0.59, 0.66),
         (0.6, 0.69),
         (1.3, 1.49),
@@ -26,7 +27,8 @@ def test_csgo(received, total):
     fee = compute_fee_from_payload(received)
     backward_fee = compute_fee_from_total(total)
 
-    assert fee.total == total
+    # input total=0.56 will result in total=0.55 and payload=0.49
+    assert fee.total <= total
     assert backward_fee.payload == received
 
 
@@ -57,26 +59,15 @@ def test_app_321360(received, game_fee, total):
     ],
 )
 def test_fee_from_1_cent_to_2000_bucks(game_fee):
-    # test all prices from $0.01 to $2000
-    prev_price = None
-    for i in range(1, 2000_01):
-        price = round(i / 100, 2)
-        price_with_fee = compute_fee_from_payload(price, game=game_fee)
-        backward_fee = compute_fee_from_total(price_with_fee.total, game=game_fee)
+    # test all prices from $0.03 to $2000
+    for i in range(3, 2000_01):
+        total = round(i / 100, 2)
+        backward_fee = compute_fee_from_total(total, game=game_fee)
+        price_with_fee = compute_fee_from_payload(backward_fee.payload, game=game_fee)
         assert backward_fee.game >= 0.01
         assert backward_fee.steam >= 0.01
         assert backward_fee.total == round(backward_fee.payload + backward_fee.steam + backward_fee.game, 2)
-        assert backward_fee.payload == price
-        # need to check corner cases, like:
-        # 0.19 -> 0.21
-        # 0.19 -> 0.22
-        if prev_price:
-            while price - 0.01 > prev_price:
-                prev_price = round(prev_price + 0.01, 2)
-                price_with_fee = compute_fee_from_payload(prev_price, game=game_fee)
-                backward_fee = compute_fee_from_total(price_with_fee.total, game=game_fee)
-                assert backward_fee.game >= 0.01
-                assert backward_fee.steam >= 0.01
-                assert backward_fee.total == round(backward_fee.payload + backward_fee.steam + backward_fee.game, 2)
-                assert backward_fee.payload == price
-        prev_price = price
+        assert backward_fee.payload == price_with_fee.payload
+        assert backward_fee.game == price_with_fee.game
+        assert backward_fee.steam == price_with_fee.steam
+        assert backward_fee.total <= total
