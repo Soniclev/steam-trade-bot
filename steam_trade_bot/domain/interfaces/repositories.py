@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import TypeVar, Generic
 
 from steam_trade_bot.domain.entities.market import (
     Game,
@@ -7,7 +8,7 @@ from steam_trade_bot.domain.entities.market import (
     SellHistoryAnalyzeResult,
     MarketItemInfo,
     MarketItemNameId,
-    MarketItemOrders,
+    MarketItemOrders, MarketItemSellHistoryStats,
 )
 
 
@@ -173,6 +174,43 @@ class IMarketItemSellHistoryRepository(ABC):
             self, app_id: int, currency: int, offset: int = None, count: int = None
     ) -> list[MarketItemSellHistory]:
         ...
+
+
+T = TypeVar('T')
+
+
+class ITestBaseGeneric(ABC, Generic[T]):
+    @abstractmethod
+    async def add(self, items: list[T]):
+        ...
+
+    @abstractmethod
+    async def add_or_update(self, items: list[T]):
+        ...
+
+    @abstractmethod
+    async def add_or_ignore(self, items: list[T]):
+        ...
+
+    @abstractmethod
+    async def remove(self, app_id: int, market_hash_name: str):
+        ...
+
+    @abstractmethod
+    async def get(
+        self, app_id: int, market_hash_name: str
+    ) -> T | None:
+        ...
+
+    @abstractmethod
+    async def get_all(
+            self, app_id: int, offset: int = None, count: int = None
+    ) -> list[T]:
+        ...
+
+
+class IMarketItemSellHistoryStatsRepository(ITestBaseGeneric[MarketItemSellHistoryStats]):
+    pass
 
 
 class ISellHistoryAnalyzeResultRepository(ABC):

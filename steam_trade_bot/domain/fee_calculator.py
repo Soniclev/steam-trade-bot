@@ -80,6 +80,4 @@ def compute_fee_from_total(total: float, game: float | None = None) -> ComputedF
             diff = total - fee.total
             est_payload = round(est_payload + max(diff * 0.4, 0.01), 2)
 
-
-
     raise ValueError("Unable to compute fee with the provided parameters. Please check that the inputs are valid and try again.")

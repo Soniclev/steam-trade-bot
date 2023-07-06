@@ -7,7 +7,7 @@ from steam_trade_bot.domain.interfaces.repositories import (
     IMarketItemSellHistoryRepository,
     ISellHistoryAnalyzeResultRepository,
     IMarketItemNameIdRepository,
-    IMarketItemOrdersRepository,
+    IMarketItemOrdersRepository, IMarketItemSellHistoryStatsRepository,
 )
 
 
@@ -18,6 +18,7 @@ class IUnitOfWork(ABC):
     market_item_info: IMarketItemInfoRepository
     market_item_name_id: IMarketItemNameIdRepository
     sell_history: IMarketItemSellHistoryRepository
+    sell_history_stats: IMarketItemSellHistoryStatsRepository
     sell_history_analyze_result: ISellHistoryAnalyzeResultRepository
 
     @abstractmethod

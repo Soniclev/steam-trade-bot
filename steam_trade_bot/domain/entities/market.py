@@ -8,6 +8,8 @@ from steam_trade_bot.type import CurrencyValue
 class Game:
     app_id: int
     name: str
+    icon_url: str
+    is_publisher_valve: bool
 
 
 @dataclass
@@ -27,7 +29,7 @@ class MarketItem:
 class MarketItemInfo:
     app_id: int
     market_hash_name: str
-    currency: int
+    # currency: int
     sell_listings: int
     sell_price: CurrencyValue | None
     sell_price_no_fee: CurrencyValue | None
@@ -37,14 +39,16 @@ class MarketItemInfo:
 class MarketItemOrders:
     app_id: int
     market_hash_name: str
-    currency: int
+    # currency: int
     timestamp: datetime
-    dump: str
-    buy_count: int | None
-    buy_order: CurrencyValue | None
-    sell_count: int | None
-    sell_order: CurrencyValue | None
-    sell_order_no_fee: CurrencyValue | None
+    # dump: str
+    buy_orders: list[tuple[float, int]]
+    sell_orders: list[tuple[float, int]]
+    # buy_count: int | None
+    # buy_order: CurrencyValue | None
+    # sell_count: int | None
+    # sell_order: CurrencyValue | None
+    # sell_order_no_fee: CurrencyValue | None
 
 
 @dataclass
@@ -64,16 +68,31 @@ class MarketItemNameId:
 class MarketItemSellHistory:
     app_id: int
     market_hash_name: str
-    currency: int
+    # currency: int
     timestamp: datetime
     history: str
+
+
+@dataclass
+class MarketItemSellHistoryStats:
+    app_id: int
+    market_hash_name: str
+    # timestamp: datetime
+    total_sold: str
+    total_volume: str
+    total_volume_steam_fee: str
+    total_volume_publisher_fee: str
+    min_price: float | None
+    max_price: float | None
+    first_sale_timestamp: datetime | None
+    last_sale_timestamp: datetime | None
 
 
 @dataclass
 class SellHistoryAnalyzeResult:
     app_id: int
     market_hash_name: str
-    currency: int
+    # currency: int
     timestamp: datetime
     sells_last_day: int
     sells_last_week: int

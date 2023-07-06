@@ -11,6 +11,7 @@ from steam_trade_bot.infrastructure.repositories import (
     MarketItemRepository,
     MarketItemNameIdRepository,
     MarketItemOrdersRepository,
+    MarketItemSellHistoryStatsRepository,
 )
 
 
@@ -27,6 +28,7 @@ class UnitOfWork(IUnitOfWork):
         self.market_item_info = MarketItemInfoRepository(self._session)
         self.market_item_name_id = MarketItemNameIdRepository(self._session)
         self.sell_history = MarketItemSellHistoryRepository(self._session)
+        self.sell_history_stats = MarketItemSellHistoryStatsRepository(self._session)
         self.sell_history_analyze_result = SellHistoryAnalyzeResultRepository(self._session)
         return self
 

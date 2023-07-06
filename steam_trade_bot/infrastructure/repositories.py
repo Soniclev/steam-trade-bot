@@ -16,7 +16,7 @@ from steam_trade_bot.domain.entities.market import (
     SellHistoryAnalyzeResult,
     MarketItemInfo,
     MarketItemNameId,
-    MarketItemOrders,
+    MarketItemOrders, MarketItemSellHistoryStats,
 )
 from steam_trade_bot.domain.interfaces.repositories import (
     IGameRepository,
@@ -25,15 +25,18 @@ from steam_trade_bot.domain.interfaces.repositories import (
     ISellHistoryAnalyzeResultRepository,
     IMarketItemInfoRepository,
     IMarketItemNameIdRepository,
-    IMarketItemOrdersRepository,
+    IMarketItemOrdersRepository, IMarketItemSellHistoryStatsRepository,
 )
 from steam_trade_bot.infrastructure.models.market import (
-    game_table,
-    market_item_table,
-    market_item_sell_history_table,
     sell_history_analyze_result_table,
     market_item_info_table,
     market_item_name_id_table,
+)
+from steam_trade_bot.infrastructure.models.dwh_market import (
+    game_table,
+    market_item_table,
+    market_item_sell_history_table,
+    market_item_stats_table,
     market_item_orders_table,
 )
 
@@ -115,30 +118,27 @@ class AppCurrencyBasedRepository(BaseRepository[T]):
         super().__init__(session, table, on_conflict_update, type_)
         self._select = select_
 
-    async def remove(self, app_id: int, market_hash_name: str, currency: int):
+    async def remove(self, app_id: int, market_hash_name: str, currency: int = 1):
         await super(AppCurrencyBasedRepository, self)._remove(
             delete(self._table)
             .where(self._table.c.app_id == app_id)
             .where(self._table.c.market_hash_name == market_hash_name)
-            .where(self._table.c.currency == currency)
         )
 
     async def get(
-            self, app_id: int, market_hash_name: str, currency: int
+            self, app_id: int, market_hash_name: str, currency: int = 1
     ) -> T | None:
         return await super(AppCurrencyBasedRepository, self)._get(
             select(self._select)
             .where(self._table.c.app_id == app_id)
             .where(self._table.c.market_hash_name == market_hash_name)
-            .where(self._table.c.currency == currency)
         )
 
     async def get_all(
-            self, app_id: int, currency: int, offset: int = None, count: int = None
+            self, app_id: int, currency: int = 1, offset: int = None, count: int = None
     ) -> list[T]:
         stmt = select(self._select) \
-            .where(self._table.c.app_id == app_id) \
-            .where(self._table.c.currency == currency)
+            .where(self._table.c.app_id == app_id)
         if count:
             stmt = stmt.limit(count)
         if offset:
@@ -232,19 +232,27 @@ class MarketItemOrdersRepository(AppCurrencyBasedRepository[MarketItemOrders],
         self._session = session
         super(MarketItemOrdersRepository, self).__init__(
             session, market_item_orders_table,
-            {"timestamp", "dump", "buy_count",
-             "buy_order", "sell_count", "sell_order",
-             "sell_order_no_fee"}, [
+            {"timestamp",
+             "buy_orders",
+             "sell_orders"
+             # "dump",
+             # "buy_count",
+             # "buy_order",
+             # "sell_count",
+             # "sell_order",
+             # "sell_order_no_fee",
+             }, [
                 market_item_orders_table.c.app_id,
                 market_item_orders_table.c.market_hash_name,
-                market_item_orders_table.c.currency,
                 market_item_orders_table.c.timestamp,
-                market_item_orders_table.c.dump,
-                market_item_orders_table.c.buy_count,
-                market_item_orders_table.c.buy_order,
-                market_item_orders_table.c.sell_count,
-                market_item_orders_table.c.sell_order,
-                market_item_orders_table.c.sell_order_no_fee,
+                market_item_orders_table.c.buy_orders,
+                market_item_orders_table.c.sell_orders,
+                # market_item_orders_table.c.dump,
+                # market_item_orders_table.c.buy_count,
+                # market_item_orders_table.c.buy_order,
+                # market_item_orders_table.c.sell_count,
+                # market_item_orders_table.c.sell_order,
+                # market_item_orders_table.c.sell_order_no_fee,
             ],
             MarketItemOrders
         )
@@ -269,7 +277,7 @@ class MarketItemSellHistoryRepository(AppCurrencyBasedRepository[MarketItemSellH
             {"timestamp", "history"}, [
                 market_item_sell_history_table.c.app_id,
                 market_item_sell_history_table.c.market_hash_name,
-                market_item_sell_history_table.c.currency,
+                # market_item_sell_history_table.c.currency,
                 market_item_sell_history_table.c.timestamp,
                 market_item_sell_history_table.c.history,
             ],
@@ -278,13 +286,36 @@ class MarketItemSellHistoryRepository(AppCurrencyBasedRepository[MarketItemSellH
 
     async def yield_all(self, app_id: int, currency: int, count: int) -> list[MarketItemSellHistory]:
         stmt = select(self._select)\
-            .where(market_item_sell_history_table.c.app_id == app_id)\
-            .where(market_item_sell_history_table.c.currency == currency)
+            .where(market_item_sell_history_table.c.app_id == app_id)
+            # .where(market_item_sell_history_table.c.currency == currency)
 
         async_result = await self._session.stream(stmt)
 
         while rows := await async_result.fetchmany(count):
             yield [MarketItemSellHistory(**row) for row in rows]
+
+
+class MarketItemSellHistoryStatsRepository(AppCurrencyBasedRepository[MarketItemSellHistoryStats],
+                                           IMarketItemSellHistoryStatsRepository):
+    def __init__(self, session: AsyncSession):
+        super(MarketItemSellHistoryStatsRepository, self).__init__(
+            session,
+            market_item_stats_table,
+            {"timestamp", "history"}, [
+                market_item_stats_table.c.app_id,
+                market_item_stats_table.c.market_hash_name,
+                # market_item_sell_history_table.c.currency,
+                market_item_stats_table.c.total_sold,
+                market_item_stats_table.c.total_volume,
+                market_item_stats_table.c.total_volume_steam_fee,
+                market_item_stats_table.c.total_volume_publisher_fee,
+                market_item_stats_table.c.min_price,
+                market_item_stats_table.c.max_price,
+                market_item_stats_table.c.first_sale_timestamp,
+                market_item_stats_table.c.last_sale_timestamp,
+            ],
+            MarketItemSellHistoryStats
+        )
 
 
 class MarketItemNameIdRepository(BaseRepository[MarketItemNameId], IMarketItemNameIdRepository):
@@ -359,8 +390,8 @@ class SellHistoryAnalyzeResultRepository(AppCurrencyBasedRepository[SellHistoryA
 
     async def yield_all(self, app_id: int, currency: int, count: int) -> list[SellHistoryAnalyzeResult]:
         stmt = select(self._select)\
-            .where(sell_history_analyze_result_table.c.app_id == app_id)\
-            .where(sell_history_analyze_result_table.c.currency == currency)
+            .where(sell_history_analyze_result_table.c.app_id == app_id)
+            # .where(sell_history_analyze_result_table.c.currency == currency)
 
         async_result = await self._session.stream(stmt)
 

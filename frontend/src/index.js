@@ -4,10 +4,55 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 
+import {
+  createBrowserRouter,
+  RouterProvider,
+  useParams,
+} from "react-router-dom";
+import Root from "./routes/root";
+import Apps from "./routes/apps";
+import AppMarketItems from "./routes/app_market_items";
+import MarketItem from './routes/market_item';
+
 const root = ReactDOM.createRoot(document.getElementById('root'));
+
+const AppMarketItemsWrapper = () => {
+  const { app_id } = useParams();
+  return <AppMarketItems app_id={app_id} />;
+};
+
+const MarketItemWrapper = () => {
+  const { app_id, market_hash_name } = useParams();
+  return <MarketItem app_id={app_id} market_hash_name={market_hash_name} />;
+};
+
+const router = createBrowserRouter([
+  {
+    path: "/",
+    element: <Root />,
+    children: [
+      {
+        path: "/",
+        element: <App />,
+      },{
+        path: "apps",
+        element: <Apps />,
+      },{
+        path: "apps/:app_id",
+        element: <AppMarketItemsWrapper />,
+      },
+      {
+        path: "apps/:app_id/:market_hash_name",
+        element: <MarketItemWrapper />,
+      },
+    ],
+  },
+]);
+
 root.render(
   <React.StrictMode>
-    <App />
+    {/* <App /> */}
+    <RouterProvider router={router} />
   </React.StrictMode>
 );
 

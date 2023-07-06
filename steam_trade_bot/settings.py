@@ -1,6 +1,9 @@
 from datetime import timedelta
 
+from dotenv import load_dotenv
 from pydantic import BaseSettings
+
+load_dotenv()
 
 
 class MarketItemSearchSettings(BaseSettings):
