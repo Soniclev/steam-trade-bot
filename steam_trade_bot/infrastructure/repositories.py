@@ -1,5 +1,6 @@
 import operator
 from dataclasses import asdict
+from operator import attrgetter
 from typing import TypeVar, Generic
 
 from steam_trade_bot.domain.exceptions import SerializationError
@@ -43,10 +44,19 @@ T = TypeVar('T')
 
 
 class BaseRepository(Generic[T]):
-    def __init__(self, session: AsyncSession, table: Table, on_conflict_update: set[str],
-                 type_: type):
+    def __init__(self,
+                 session: AsyncSession,
+                 table: Table,
+                 type_: type,
+                 conflict_index: set[str],
+                 on_conflict_update: set[str] | None = None,
+                 ):
         self._session = session
         self._table = table
+        self._conflict_index_set = conflict_index
+        self._all_columns = [c.name for c in table.c]
+        if not on_conflict_update:
+            on_conflict_update = set(self._all_columns) - set(self._conflict_index_set)
         self._conflict_update_set = {x: operator.attrgetter(x) for x in on_conflict_update}
         self._type = type_
 
@@ -111,12 +121,13 @@ class BaseRepository(Generic[T]):
         return [self._type(**row) for row in rows]
 
 
-# TODO: extract columns from table variable for on_conflict_update
 class AppMarketNameBasedRepository(BaseRepository[T]):
-    def __init__(self, session: AsyncSession, table: Table, on_conflict_update: set[str],
-                 select_: list, type_: type):
-        super().__init__(session, table, on_conflict_update, type_)
-        self._select = select_
+    def __init__(self, session: AsyncSession, table: Table, type_: type):
+        super().__init__(session, table, type_, {"app_id", "market_hash_name"})
+        self._select = [
+            attrgetter(column)(table.c)
+            for column in self._all_columns
+        ]
 
     async def remove(self, app_id: int, market_hash_name: str):
         await super(AppMarketNameBasedRepository, self)._remove(
@@ -157,7 +168,7 @@ class AppMarketNameBasedRepository(BaseRepository[T]):
 
 class GameRepository(BaseRepository[Game], IGameRepository):
     def __init__(self, session: AsyncSession):
-        super().__init__(session, game_table, {"name"}, Game)
+        super().__init__(session, game_table, Game, {"app_id"})
 
     async def remove(self, app_id: int):
         await super(GameRepository).remove(
@@ -182,35 +193,14 @@ class MarketItemInfoRepository(AppMarketNameBasedRepository[MarketItemInfo],
                                IMarketItemInfoRepository):
     def __init__(self, session: AsyncSession):
         super(MarketItemInfoRepository, self).__init__(
-            session, market_item_info_table,
-            {"sell_listings", "sell_price",
-             "sell_price_no_fee"},
-            [
-                market_item_info_table.c.app_id,
-                market_item_info_table.c.market_hash_name,
-                market_item_info_table.c.sell_listings,
-                market_item_info_table.c.sell_price,
-                market_item_info_table.c.sell_price_no_fee,
-            ],
-            MarketItemInfo
+            session, market_item_info_table, MarketItemInfo
         )
 
 
 class MarketItemRepository(AppMarketNameBasedRepository[MarketItem], IMarketItemRepository):
     def __init__(self, session: AsyncSession):
         super(MarketItemRepository, self).__init__(
-            session, market_item_table,
-            {"market_fee", "market_marketable_restriction",
-             "market_tradable_restriction", "commodity"},
-            [
-                market_item_table.c.app_id,
-                market_item_table.c.market_hash_name,
-                market_item_table.c.market_fee,
-                market_item_table.c.market_marketable_restriction,
-                market_item_table.c.market_tradable_restriction,
-                market_item_table.c.commodity,
-            ],
-            MarketItem
+            session, market_item_table, MarketItem
         )
 
 
@@ -219,18 +209,7 @@ class MarketItemOrdersRepository(AppMarketNameBasedRepository[MarketItemOrders],
     def __init__(self, session: AsyncSession):
         self._session = session
         super(MarketItemOrdersRepository, self).__init__(
-            session, market_item_orders_table,
-            {"timestamp",
-             "buy_orders",
-             "sell_orders"
-             }, [
-                market_item_orders_table.c.app_id,
-                market_item_orders_table.c.market_hash_name,
-                market_item_orders_table.c.timestamp,
-                market_item_orders_table.c.buy_orders,
-                market_item_orders_table.c.sell_orders,
-            ],
-            MarketItemOrders
+            session, market_item_orders_table, MarketItemOrders
         )
 
 
@@ -238,15 +217,7 @@ class MarketItemSellHistoryRepository(AppMarketNameBasedRepository[MarketItemSel
                                       IMarketItemSellHistoryRepository):
     def __init__(self, session: AsyncSession):
         super(MarketItemSellHistoryRepository, self).__init__(
-            session,
-            market_item_sell_history_table,
-            {"timestamp", "history"}, [
-                market_item_sell_history_table.c.app_id,
-                market_item_sell_history_table.c.market_hash_name,
-                market_item_sell_history_table.c.timestamp,
-                market_item_sell_history_table.c.history,
-            ],
-            MarketItemSellHistory
+            session, market_item_sell_history_table, MarketItemSellHistory
         )
 
 
@@ -254,35 +225,14 @@ class MarketItemSellHistoryStatsRepository(AppMarketNameBasedRepository[MarketIt
                                            IMarketItemSellHistoryStatsRepository):
     def __init__(self, session: AsyncSession):
         super(MarketItemSellHistoryStatsRepository, self).__init__(
-            session,
-            market_item_stats_table,
-            {"timestamp", "history"}, [
-                market_item_stats_table.c.app_id,
-                market_item_stats_table.c.market_hash_name,
-                market_item_stats_table.c.total_sold,
-                market_item_stats_table.c.total_volume,
-                market_item_stats_table.c.total_volume_steam_fee,
-                market_item_stats_table.c.total_volume_publisher_fee,
-                market_item_stats_table.c.min_price,
-                market_item_stats_table.c.max_price,
-                market_item_stats_table.c.first_sale_timestamp,
-                market_item_stats_table.c.last_sale_timestamp,
-            ],
-            MarketItemSellHistoryStats
+            session, market_item_stats_table, MarketItemSellHistoryStats
         )
 
 
 class MarketItemNameIdRepository(AppMarketNameBasedRepository[MarketItemNameId], IMarketItemNameIdRepository):
     def __init__(self, session: AsyncSession):
         super(MarketItemNameIdRepository, self).__init__(
-            session, market_item_name_id_table,
-            {"item_name_id"},
-            [
-                market_item_name_id_table.c.app_id,
-                market_item_name_id_table.c.market_hash_name,
-                market_item_name_id_table.c.item_name_id
-            ],
-            MarketItemNameId
+            session, market_item_name_id_table, MarketItemNameId
         )
 
 
@@ -290,28 +240,5 @@ class SellHistoryAnalyzeResultRepository(AppMarketNameBasedRepository[SellHistor
                                          ISellHistoryAnalyzeResultRepository):
     def __init__(self, session: AsyncSession):
         super(SellHistoryAnalyzeResultRepository, self).__init__(
-            session,
-            sell_history_analyze_result_table,
-            {
-                "timestamp",
-                "sells_last_day",
-                "sells_last_week",
-                "sells_last_month",
-                "recommended",
-                "deviation",
-                "sell_order",
-                "sell_order_no_fee",
-            }, [
-                sell_history_analyze_result_table.c.app_id,
-                sell_history_analyze_result_table.c.market_hash_name,
-                sell_history_analyze_result_table.c.timestamp,
-                sell_history_analyze_result_table.c.sells_last_day,
-                sell_history_analyze_result_table.c.sells_last_week,
-                sell_history_analyze_result_table.c.sells_last_month,
-                sell_history_analyze_result_table.c.recommended,
-                sell_history_analyze_result_table.c.deviation,
-                sell_history_analyze_result_table.c.sell_order,
-                sell_history_analyze_result_table.c.sell_order_no_fee,
-            ],
-            SellHistoryAnalyzeResult
+            session, sell_history_analyze_result_table, SellHistoryAnalyzeResult
         )

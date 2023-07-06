@@ -20,6 +20,7 @@ class MarketItem:
     market_marketable_restriction: int | None
     market_tradable_restriction: int | None
     commodity: bool
+    icon_url: str | None
 
     def is_tradable(self) -> bool:
         return self.market_tradable_restriction != -1  # -1 means not tradable at all
