@@ -64,7 +64,6 @@ class SellHistoryAnalyzer:
             return SellHistoryAnalyzeResult(
                 app_id=history.app_id,
                 market_hash_name=history.market_hash_name,
-                currency=history.currency,
                 timestamp=history.timestamp,
                 sells_last_day=sells_last_day,
                 sells_last_week=sells_last_week,
@@ -101,7 +100,6 @@ class SellHistoryAnalyzer:
             return SellHistoryAnalyzeResult(
                 app_id=history.app_id,
                 market_hash_name=history.market_hash_name,
-                currency=history.currency,
                 timestamp=history.timestamp,
                 sells_last_day=sells_last_day,
                 sells_last_week=sells_last_week,
@@ -130,7 +128,6 @@ class SellHistoryAnalyzer:
         return SellHistoryAnalyzeResult(
             app_id=history.app_id,
             market_hash_name=history.market_hash_name,
-            currency=history.currency,
             timestamp=history.timestamp,
             sells_last_day=sells_last_day,
             sells_last_week=sells_last_week,

@@ -139,7 +139,6 @@ class ExportYaml:
         async with self._uow() as uow:
             async for results in uow.sell_history_analyze_result.yield_all(
                     app_id=app_id,
-                    currency=currency,
                     count=250,
             ):
                 for result in results:
@@ -147,7 +146,6 @@ class ExportYaml:
                         orders = await uow.market_item_orders.get(
                             app_id=result.app_id,
                             market_hash_name=result.market_hash_name,
-                            currency=currency
                         )
                         history = await uow.sell_history.get(result.app_id, result.market_hash_name, currency)
                         if orders.buy_order and orders.sell_order:

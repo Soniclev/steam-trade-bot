@@ -29,7 +29,6 @@ class MarketItem:
 class MarketItemInfo:
     app_id: int
     market_hash_name: str
-    # currency: int
     sell_listings: int
     sell_price: CurrencyValue | None
     sell_price_no_fee: CurrencyValue | None
@@ -39,7 +38,6 @@ class MarketItemInfo:
 class MarketItemOrders:
     app_id: int
     market_hash_name: str
-    # currency: int
     timestamp: datetime
     # dump: str
     buy_orders: list[tuple[float, int]]
@@ -68,7 +66,6 @@ class MarketItemNameId:
 class MarketItemSellHistory:
     app_id: int
     market_hash_name: str
-    # currency: int
     timestamp: datetime
     history: str
 
@@ -92,7 +89,6 @@ class MarketItemSellHistoryStats:
 class SellHistoryAnalyzeResult:
     app_id: int
     market_hash_name: str
-    # currency: int
     timestamp: datetime
     sells_last_day: int
     sells_last_week: int
@@ -101,15 +97,3 @@ class SellHistoryAnalyzeResult:
     deviation: float | None
     sell_order: CurrencyValue | None
     sell_order_no_fee: CurrencyValue | None
-
-
-@dataclass
-class BuySellItem:
-    account: str
-    app_id: int
-    market_hash_name: str
-    currency: int
-    enabled: bool
-    amount: int
-    buy_order: CurrencyValue
-    sell_order: CurrencyValue

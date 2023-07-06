@@ -20,7 +20,7 @@ class STEExport:
         items = await self._market_item_rep.get_all(app_id=730)
         for market_item in items:
             result = await self._sell_history_analyze_result_rep.get(
-                app_id=market_item.app_id, market_hash_name=market_item.market_hash_name, currency=1
+                app_id=market_item.app_id, market_hash_name=market_item.market_hash_name
             )
 
             if not result or not result.recommended:

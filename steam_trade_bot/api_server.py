@@ -126,7 +126,6 @@ async def get_market_item(
 class MarketItemOrdersPydantic(BaseModel):
     app_id: int
     market_hash_name: str
-    # currency: int
     timestamp: datetime
     buy_count: int | None
     buy_order: CurrencyValue | None
@@ -140,14 +139,12 @@ class MarketItemOrdersPydantic(BaseModel):
 async def get_market_item_orders(
         app_id: int = 730,
         market_hash_name: str = "Sticker | Skull Lil Boney",
-        currency: int = 1,
         uow: IUnitOfWork = Depends(Provide[Container.repositories.unit_of_work]),
 ):
     async with uow:
         item = await uow.market_item_orders.get(
             app_id=app_id,
             market_hash_name=market_hash_name,
-            currency=currency,
         )
     return MarketItemOrdersPydantic(**dataclasses.asdict(item))
 
@@ -157,27 +154,21 @@ async def get_market_item_orders(
 async def get_item_sell_history(
         app_id: int = 730,
         market_hash_name: str = "Sticker | Skull Lil Boney",
-        currency: int = 1,
         uow: IUnitOfWork = Depends(Provide[Container.repositories.unit_of_work]),
 ):
     async with uow:
         history = await uow.sell_history.get(
             app_id=app_id,
             market_hash_name=market_hash_name,
-            currency=currency
         )
         stats = await uow.sell_history_stats.get(
             app_id=app_id,
             market_hash_name=market_hash_name
         )
-    # history_ = [
-    #     (datetime.fromtimestamp(x[0]), x[1], x[2])
-    #     for x in json.loads(history.history)]
-    # total_volume = round(sum(x[1] * x[2] for x in history_), 2)
+
     return MarketItemSellHistoryResponse(
         app_id=history.app_id,
         market_hash_name=history.market_hash_name,
-        # currency=history.currency,
         timestamp=history.timestamp,
         total_sold=stats.total_sold,
         total_volume=stats.total_volume,

@@ -6,7 +6,6 @@ from pydantic import BaseModel
 class MarketItemSellHistoryResponse(BaseModel):
     app_id: int
     market_hash_name: str
-    # currency: int
     timestamp: datetime
     total_sold: int
     total_volume: float

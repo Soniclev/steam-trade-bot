@@ -11,6 +11,8 @@ from typing import Callable
 from urllib.parse import urlparse, parse_qs, urlencode
 
 from aiohttp import ClientResponseError
+
+from steam_trade_bot.consts import DEFAULT_CURRENCY
 from steam_trade_bot.domain.exceptions import SerializationError
 
 from steam_trade_bot.domain.entities.market import (
@@ -150,7 +152,7 @@ class MarketItemImporterFromSearch(BaseMarketItemImporter):
         super(MarketItemImporterFromSearch, self).__init__(uow, steam_session_provider)
         self._settings = MarketItemSearchSettings(**settings)
 
-    async def import_items_from_url(self, url: str, currency: int):
+    async def import_items_from_url(self, url: str, currency: int = DEFAULT_CURRENCY):
         # https://steamcommunity.com/market/search/render/?query=&start=20&count=10
         # &search_descriptions=0&sort_column=price&sort_dir=asc&appid=730
         parsed_url = urlparse(url)
@@ -264,7 +266,7 @@ class MarketItemImporterFromSearch(BaseMarketItemImporter):
             market_item_infos.append(
                 MarketItemInfo(
                     app_id=app_id, market_hash_name=market_hash_name,
-                    currency=currency, sell_listings=sell_listings,
+                    sell_listings=sell_listings,
                     sell_price=sell_price,
                     sell_price_no_fee=sell_price_no_fee,
                 )

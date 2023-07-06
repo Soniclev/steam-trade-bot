@@ -1,6 +1,5 @@
 import operator
 from dataclasses import asdict
-from datetime import datetime
 from typing import TypeVar, Generic
 
 from steam_trade_bot.domain.exceptions import SerializationError
@@ -112,30 +111,31 @@ class BaseRepository(Generic[T]):
         return [self._type(**row) for row in rows]
 
 
-class AppCurrencyBasedRepository(BaseRepository[T]):
+# TODO: extract columns from table variable for on_conflict_update
+class AppMarketNameBasedRepository(BaseRepository[T]):
     def __init__(self, session: AsyncSession, table: Table, on_conflict_update: set[str],
                  select_: list, type_: type):
         super().__init__(session, table, on_conflict_update, type_)
         self._select = select_
 
-    async def remove(self, app_id: int, market_hash_name: str, currency: int = 1):
-        await super(AppCurrencyBasedRepository, self)._remove(
+    async def remove(self, app_id: int, market_hash_name: str):
+        await super(AppMarketNameBasedRepository, self)._remove(
             delete(self._table)
             .where(self._table.c.app_id == app_id)
             .where(self._table.c.market_hash_name == market_hash_name)
         )
 
     async def get(
-            self, app_id: int, market_hash_name: str, currency: int = 1
+            self, app_id: int, market_hash_name: str
     ) -> T | None:
-        return await super(AppCurrencyBasedRepository, self)._get(
+        return await super(AppMarketNameBasedRepository, self)._get(
             select(self._select)
             .where(self._table.c.app_id == app_id)
             .where(self._table.c.market_hash_name == market_hash_name)
         )
 
     async def get_all(
-            self, app_id: int, currency: int = 1, offset: int = None, count: int = None
+            self, app_id: int, offset: int = None, count: int = None
     ) -> list[T]:
         stmt = select(self._select) \
             .where(self._table.c.app_id == app_id)
@@ -143,7 +143,16 @@ class AppCurrencyBasedRepository(BaseRepository[T]):
             stmt = stmt.limit(count)
         if offset:
             stmt = stmt.offset(offset)
-        return await super(AppCurrencyBasedRepository, self)._get_all(stmt)
+        return await super(AppMarketNameBasedRepository, self)._get_all(stmt)
+
+    async def yield_all(self, app_id: int, count: int) -> list[T]:
+        stmt = select(self._select) \
+            .where(self._table.c.app_id == app_id)
+
+        async_result = await self._session.stream(stmt)
+
+        while rows := await async_result.fetchmany(count):
+            yield [T(**row) for row in rows]
 
 
 class GameRepository(BaseRepository[Game], IGameRepository):
@@ -169,7 +178,7 @@ class GameRepository(BaseRepository[Game], IGameRepository):
         return await super(GameRepository, self)._get_all(stmt)
 
 
-class MarketItemInfoRepository(AppCurrencyBasedRepository[MarketItemInfo],
+class MarketItemInfoRepository(AppMarketNameBasedRepository[MarketItemInfo],
                                IMarketItemInfoRepository):
     def __init__(self, session: AsyncSession):
         super(MarketItemInfoRepository, self).__init__(
@@ -179,7 +188,6 @@ class MarketItemInfoRepository(AppCurrencyBasedRepository[MarketItemInfo],
             [
                 market_item_info_table.c.app_id,
                 market_item_info_table.c.market_hash_name,
-                market_item_info_table.c.currency,
                 market_item_info_table.c.sell_listings,
                 market_item_info_table.c.sell_price,
                 market_item_info_table.c.sell_price_no_fee,
@@ -188,45 +196,25 @@ class MarketItemInfoRepository(AppCurrencyBasedRepository[MarketItemInfo],
         )
 
 
-class MarketItemRepository(BaseRepository[MarketItem], IMarketItemRepository):
+class MarketItemRepository(AppMarketNameBasedRepository[MarketItem], IMarketItemRepository):
     def __init__(self, session: AsyncSession):
-        super(MarketItemRepository, self).__init__(session, market_item_table,
-                                                   {"market_fee", "market_marketable_restriction",
-                                                    "market_tradable_restriction", "commodity"},
-                                                   MarketItem)
-        self._select = [
-            market_item_table.c.app_id,
-            market_item_table.c.market_hash_name,
-            market_item_table.c.market_fee,
-            market_item_table.c.market_marketable_restriction,
-            market_item_table.c.market_tradable_restriction,
-            market_item_table.c.commodity,
-        ]
-
-    async def remove(self, app_id: int, market_hash_name: str):
-        await super(MarketItemRepository, self)._remove(
-            delete(market_item_table)
-            .where(market_item_table.c.app_id == app_id)
-            .where(market_item_table.c.market_hash_name == market_hash_name)
+        super(MarketItemRepository, self).__init__(
+            session, market_item_table,
+            {"market_fee", "market_marketable_restriction",
+             "market_tradable_restriction", "commodity"},
+            [
+                market_item_table.c.app_id,
+                market_item_table.c.market_hash_name,
+                market_item_table.c.market_fee,
+                market_item_table.c.market_marketable_restriction,
+                market_item_table.c.market_tradable_restriction,
+                market_item_table.c.commodity,
+            ],
+            MarketItem
         )
 
-    async def get(self, app_id: int, market_hash_name: str) -> MarketItem | None:
-        return await super(MarketItemRepository, self)._get(
-            select(self._select)
-            .where(market_item_table.c.app_id == app_id)
-            .where(market_item_table.c.market_hash_name == market_hash_name)
-        )
 
-    async def get_all(self, app_id: int, offset: int = None, count: int = None) -> list[MarketItem]:
-        stmt = select(self._select).where(market_item_table.c.app_id == app_id)
-        if offset:
-            stmt = stmt.offset(offset)
-        if count:
-            stmt = stmt.limit(count)
-        return await super(MarketItemRepository, self)._get_all(stmt)
-
-
-class MarketItemOrdersRepository(AppCurrencyBasedRepository[MarketItemOrders],
+class MarketItemOrdersRepository(AppMarketNameBasedRepository[MarketItemOrders],
                                  IMarketItemOrdersRepository):
     def __init__(self, session: AsyncSession):
         self._session = session
@@ -235,40 +223,18 @@ class MarketItemOrdersRepository(AppCurrencyBasedRepository[MarketItemOrders],
             {"timestamp",
              "buy_orders",
              "sell_orders"
-             # "dump",
-             # "buy_count",
-             # "buy_order",
-             # "sell_count",
-             # "sell_order",
-             # "sell_order_no_fee",
              }, [
                 market_item_orders_table.c.app_id,
                 market_item_orders_table.c.market_hash_name,
                 market_item_orders_table.c.timestamp,
                 market_item_orders_table.c.buy_orders,
                 market_item_orders_table.c.sell_orders,
-                # market_item_orders_table.c.dump,
-                # market_item_orders_table.c.buy_count,
-                # market_item_orders_table.c.buy_order,
-                # market_item_orders_table.c.sell_count,
-                # market_item_orders_table.c.sell_order,
-                # market_item_orders_table.c.sell_order_no_fee,
             ],
             MarketItemOrders
         )
 
-    async def yield_all(self, app_id: int, currency: int, count: int) -> list[MarketItemOrders]:
-        stmt = select(self._select)\
-            .where(market_item_orders_table.c.app_id == app_id)\
-            .where(market_item_orders_table.c.currency == currency)
 
-        async_result = await self._session.stream(stmt)
-
-        while rows := await async_result.fetchmany(count):
-            yield [MarketItemOrders(**row) for row in rows]
-
-
-class MarketItemSellHistoryRepository(AppCurrencyBasedRepository[MarketItemSellHistory],
+class MarketItemSellHistoryRepository(AppMarketNameBasedRepository[MarketItemSellHistory],
                                       IMarketItemSellHistoryRepository):
     def __init__(self, session: AsyncSession):
         super(MarketItemSellHistoryRepository, self).__init__(
@@ -277,25 +243,14 @@ class MarketItemSellHistoryRepository(AppCurrencyBasedRepository[MarketItemSellH
             {"timestamp", "history"}, [
                 market_item_sell_history_table.c.app_id,
                 market_item_sell_history_table.c.market_hash_name,
-                # market_item_sell_history_table.c.currency,
                 market_item_sell_history_table.c.timestamp,
                 market_item_sell_history_table.c.history,
             ],
             MarketItemSellHistory
         )
 
-    async def yield_all(self, app_id: int, currency: int, count: int) -> list[MarketItemSellHistory]:
-        stmt = select(self._select)\
-            .where(market_item_sell_history_table.c.app_id == app_id)
-            # .where(market_item_sell_history_table.c.currency == currency)
 
-        async_result = await self._session.stream(stmt)
-
-        while rows := await async_result.fetchmany(count):
-            yield [MarketItemSellHistory(**row) for row in rows]
-
-
-class MarketItemSellHistoryStatsRepository(AppCurrencyBasedRepository[MarketItemSellHistoryStats],
+class MarketItemSellHistoryStatsRepository(AppMarketNameBasedRepository[MarketItemSellHistoryStats],
                                            IMarketItemSellHistoryStatsRepository):
     def __init__(self, session: AsyncSession):
         super(MarketItemSellHistoryStatsRepository, self).__init__(
@@ -304,7 +259,6 @@ class MarketItemSellHistoryStatsRepository(AppCurrencyBasedRepository[MarketItem
             {"timestamp", "history"}, [
                 market_item_stats_table.c.app_id,
                 market_item_stats_table.c.market_hash_name,
-                # market_item_sell_history_table.c.currency,
                 market_item_stats_table.c.total_sold,
                 market_item_stats_table.c.total_volume,
                 market_item_stats_table.c.total_volume_steam_fee,
@@ -318,46 +272,21 @@ class MarketItemSellHistoryStatsRepository(AppCurrencyBasedRepository[MarketItem
         )
 
 
-class MarketItemNameIdRepository(BaseRepository[MarketItemNameId], IMarketItemNameIdRepository):
+class MarketItemNameIdRepository(AppMarketNameBasedRepository[MarketItemNameId], IMarketItemNameIdRepository):
     def __init__(self, session: AsyncSession):
         super(MarketItemNameIdRepository, self).__init__(
             session, market_item_name_id_table,
             {"item_name_id"},
+            [
+                market_item_name_id_table.c.app_id,
+                market_item_name_id_table.c.market_hash_name,
+                market_item_name_id_table.c.item_name_id
+            ],
             MarketItemNameId
         )
-        self._select = [
-            market_item_name_id_table.c.app_id,
-            market_item_name_id_table.c.market_hash_name,
-            market_item_name_id_table.c.item_name_id,
-        ]
-
-    async def remove(self, app_id: int, market_hash_name: str):
-        await super(MarketItemNameIdRepository, self)._remove(
-            delete(market_item_name_id_table)
-            .where(market_item_name_id_table.c.app_id == app_id)
-            .where(market_item_name_id_table.c.market_hash_name == market_hash_name)
-        )
-
-    async def get(self, app_id: int, market_hash_name: str) -> MarketItemNameId | None:
-        return await super(MarketItemNameIdRepository, self)._get(
-            select(
-                self._select
-            )
-            .where(market_item_name_id_table.c.app_id == app_id)
-            .where(market_item_name_id_table.c.market_hash_name == market_hash_name)
-        )
-
-    async def get_all(self, app_id: int, offset: int = None, count: int = None) -> list[
-        MarketItemNameId]:
-        stmt = select(self._select).where(market_item_name_id_table.c.app_id == app_id)
-        if offset:
-            stmt = stmt.offset(offset)
-        if count:
-            stmt = stmt.limit(count)
-        return await super(MarketItemNameIdRepository, self)._get_all(stmt)
 
 
-class SellHistoryAnalyzeResultRepository(AppCurrencyBasedRepository[SellHistoryAnalyzeResult],
+class SellHistoryAnalyzeResultRepository(AppMarketNameBasedRepository[SellHistoryAnalyzeResult],
                                          ISellHistoryAnalyzeResultRepository):
     def __init__(self, session: AsyncSession):
         super(SellHistoryAnalyzeResultRepository, self).__init__(
@@ -375,7 +304,6 @@ class SellHistoryAnalyzeResultRepository(AppCurrencyBasedRepository[SellHistoryA
             }, [
                 sell_history_analyze_result_table.c.app_id,
                 sell_history_analyze_result_table.c.market_hash_name,
-                sell_history_analyze_result_table.c.currency,
                 sell_history_analyze_result_table.c.timestamp,
                 sell_history_analyze_result_table.c.sells_last_day,
                 sell_history_analyze_result_table.c.sells_last_week,
@@ -385,15 +313,5 @@ class SellHistoryAnalyzeResultRepository(AppCurrencyBasedRepository[SellHistoryA
                 sell_history_analyze_result_table.c.sell_order,
                 sell_history_analyze_result_table.c.sell_order_no_fee,
             ],
-        SellHistoryAnalyzeResult
+            SellHistoryAnalyzeResult
         )
-
-    async def yield_all(self, app_id: int, currency: int, count: int) -> list[SellHistoryAnalyzeResult]:
-        stmt = select(self._select)\
-            .where(sell_history_analyze_result_table.c.app_id == app_id)
-            # .where(sell_history_analyze_result_table.c.currency == currency)
-
-        async_result = await self._session.stream(stmt)
-
-        while rows := await async_result.fetchmany(count):
-            yield [SellHistoryAnalyzeResult(**row) for row in rows]
