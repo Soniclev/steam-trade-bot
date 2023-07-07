@@ -11,8 +11,8 @@ FROM public.market_item
 where public.market_item.app_id = 730;
 
 truncate raw.market_item_orders cascade; 
-INSERT INTO raw.market_item_orders (app_id, market_hash_name, currency, timestamp, dump)
-SELECT app_id, market_hash_name, currency, timestamp, dump
+INSERT INTO raw.market_item_orders (app_id, market_hash_name, timestamp, dump)
+SELECT app_id, market_hash_name, timestamp, dump
 FROM public.market_item_orders
 where public.market_item_orders.app_id = 730;
 
