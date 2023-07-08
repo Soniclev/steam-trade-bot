@@ -45,6 +45,12 @@ class IAppMarketNameBasedRepositoryGeneric(ABC, Generic[T]):
         ...
 
     @abstractmethod
+    async def yield_all_by_pairs(
+            self, pairs: list[tuple[int, str]], count: int = None
+    ) -> list[T]:
+        ...
+
+    @abstractmethod
     async def yield_all(self, app_id: int, count: int) -> list[T]:
         ...
 

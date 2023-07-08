@@ -88,9 +88,14 @@ def extract_orders_from_row(row):
 def process_market_item(
         obj: MarketItemRaw
 ) -> tuple[MarketItemStage, MarketItemDWH]:
+    dict_ = dict(**obj)
+    if dict_["market_fee"]:
+        dict_["market_fee"] = round(float(dict_["market_fee"]), 2)
+    else:
+        dict_["market_fee"] = None
     return (
-        MarketItemStage(**obj),
-        MarketItemDWH(**obj)
+        MarketItemStage(**dict_),
+        MarketItemDWH(**dict_)
     )
 
 
@@ -111,8 +116,8 @@ def process_market_item_sell_history(
 def process_market_item_orders(
         obj: MarketItemOrdersRaw
 ) -> tuple[MarketItemOrdersStage, MarketItemOrdersDWH]:
-    processed_sell_history = extract_orders_from_row(obj)
+    processed = extract_orders_from_row(obj)
     return (
-        MarketItemOrdersStage(**processed_sell_history),
-        MarketItemOrdersDWH(**processed_sell_history),
+        MarketItemOrdersStage(**processed),
+        MarketItemOrdersDWH(**processed),
     )

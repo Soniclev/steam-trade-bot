@@ -4,7 +4,7 @@ from operator import attrgetter
 from typing import TypeVar, Generic
 
 from steam_trade_bot.domain.exceptions import SerializationError
-from sqlalchemy import delete, select, Table
+from sqlalchemy import delete, select, Table, or_
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -156,6 +156,21 @@ class AppMarketNameBasedRepository(BaseRepository[T]):
             stmt = stmt.offset(offset)
         return await super(AppMarketNameBasedRepository, self)._get_all(stmt)
 
+    async def yield_all_by_pairs(self, pairs: list[tuple[int, str]], count: int) -> list[T]:
+        filter_conditions = []
+        for app_id, market_hash_name in pairs:
+            filter_conditions.append(
+                (self._table.c.app_id == app_id) &
+                (self._table.c.market_hash_name == market_hash_name)
+            )
+
+        stmt = select(self._select).where(or_(*filter_conditions))
+
+        async_result = await self._session.stream(stmt)
+
+        while rows := await async_result.fetchmany(count):
+            yield [self._type(**row) for row in rows]
+
     async def yield_all(self, app_id: int, count: int) -> list[T]:
         stmt = select(self._select) \
             .where(self._table.c.app_id == app_id)
@@ -163,12 +178,12 @@ class AppMarketNameBasedRepository(BaseRepository[T]):
         async_result = await self._session.stream(stmt)
 
         while rows := await async_result.fetchmany(count):
-            yield [T(**row) for row in rows]
+            yield [self._type(**row) for row in rows]
 
 
 class GameRepository(BaseRepository[Game], IGameRepository):
-    def __init__(self, session: AsyncSession):
-        super().__init__(session, game_table, Game, {"app_id"})
+    def __init__(self, session: AsyncSession, table=game_table, type_=Game):
+        super().__init__(session, table, type_, {"app_id"})
 
     async def remove(self, app_id: int):
         await super(GameRepository).remove(
@@ -179,6 +194,20 @@ class GameRepository(BaseRepository[Game], IGameRepository):
         return await super(GameRepository).get(
             select(self._table).where(self._table.c.app_id == app_id)
         )
+
+    async def yield_all_by_app_ids(self, app_ids: list[int], count: int) -> list[T]:
+        filter_conditions = []
+        for app_id in app_ids:
+            filter_conditions.append(
+                (self._table.c.app_id == app_id)
+            )
+
+        stmt = select(self._table).where(or_(*filter_conditions))
+
+        async_result = await self._session.stream(stmt)
+
+        while rows := await async_result.fetchmany(count):
+            yield [self._type(**row) for row in rows]
 
     async def get_all(self, offset: int = None, count: int = None) -> list[Game]:
         stmt = select(self._table)

@@ -82,11 +82,7 @@ export default function MarketItem(props) {
       <p>Commodity: <i>{formatCommodity(games.commodity)}</i></p>
       <h3>Orders</h3>
       <p><i>Last orders update timestamp</i>: {moment(orders.timestamp).format('YYYY-MM-DD HH:mm:ssZ')}</p>
-      <p><i>Buy count</i>: {orders.buy_count}</p>
-      <p><i>Buy order</i>: {formatPrice(orders.buy_order)}</p>
-      <p><i>Sell count</i>: {orders.sell_count}</p>
-      <p><i>Sell order</i>: {formatPrice(orders.sell_order)}</p>
-      <p><i>Sell order (no fee)</i>: {formatPrice(orders.sell_order_no_fee)}</p>
+      <p>TODO: orders table</p>
       <h3>History</h3>
       <p><i>Last history update timestamp</i>: {moment(history.timestamp).format('YYYY-MM-DD HH:mm:ssZ')}</p>
       <p><i>First sale</i>: {moment(history.first_sale_datetime).format('YYYY-MM-DD HH:mm:ssZ')}</p>

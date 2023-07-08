@@ -26,8 +26,13 @@ class MarketItemRaw(TypedDict):
     commodity: bool
 
 
-class MarketItemStage(MarketItemRaw):
-    pass
+class MarketItemStage(TypedDict):
+    app_id: int
+    market_hash_name: str
+    market_fee: float
+    market_marketable_restriction: float
+    market_tradable_restriction: float
+    commodity: bool
 
 
 class MarketItemDWH(MarketItemStage):

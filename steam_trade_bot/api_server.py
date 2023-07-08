@@ -54,6 +54,20 @@ class MarketItemPydantic(BaseModel):
 class GamePydantic(BaseModel):
     app_id: int
     name: str
+    icon_url: str | None
+    is_publisher_valve: bool
+
+
+class GameStatsPydantic(BaseModel):
+    app_id: int
+    items_amount: int
+    total_sold: float
+    total_volume_steam_fee: float
+    total_volume_publisher_fee: float
+    min_price: float
+    max_price: float
+    first_sale_timestamp: float
+    last_sale_timestamp: float
 
 
 class MarketItemsListResponse(BaseModel):

@@ -87,6 +87,9 @@ market_item_sell_history_table = Table(
     UniqueConstraint("app_id", "market_hash_name"),
 )
 
+#TODO: add view with top market_items by sold amount and volume ?
+# TODO: or create Spark job?
+# TODO: items similarity by ?, ?, ? parameters - the good choice for using Spark
 app_stats_view_name = "app_stats_view"
 app_stats_view_select = """SELECT 
 app_id,
