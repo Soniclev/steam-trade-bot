@@ -1,16 +1,26 @@
 from datetime import datetime
-from typing import TypedDict
+from typing import TypedDict, NamedTuple
+
+
+class AppIdKey(NamedTuple):
+    app_id: int
+
+
+class AppIdMarketNameKey(NamedTuple):
+    app_id: int
+    market_hash_name: str
 
 
 class GameRaw(TypedDict):
     app_id: int
     name: str
-    icon_url: str
+
+
+class GameStage(TypedDict):
+    app_id: int
+    name: str
+    icon_url: str | None
     is_publisher_valve: bool
-
-
-class GameStage(GameRaw):
-    pass
 
 
 class GameDWH(GameStage):

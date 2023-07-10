@@ -43,3 +43,15 @@ async def upsert_many(session, table, values, index_elements: list[str], set_: l
             ),
             values,
         )
+
+
+def _get_non_index_columns(table, index_elements: set[str]) -> list[str]:
+    result = []
+    for column in table.c:
+        if column.name not in index_elements:
+            result.append(column.name)
+    return result
+
+
+async def upsert_many_by_index(session, table, values, index_elements: list[str]):
+    await upsert_many(session, table, values, index_elements, _get_non_index_columns(table, set(index_elements)))
