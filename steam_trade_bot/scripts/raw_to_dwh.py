@@ -8,6 +8,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.dialects.postgresql import insert
 
 from steam_trade_bot.containers import Container
+from steam_trade_bot.database import upsert_many
 from steam_trade_bot.etl.models import MarketItemRaw, MarketItemSellHistoryRaw, MarketItemOrdersRaw, \
     GameRaw
 from steam_trade_bot.etl.processors.game import process_game
@@ -30,22 +31,6 @@ from steam_trade_bot.infrastructure.models.dwh_market import market_item_table a
     game_table as dwh_game_table
 
 from steam_trade_bot.settings import BotSettings
-
-
-async def _upsert_many(session, table, values, index_elements: list[str], set_: list[str]):
-    if values:
-        insert_stmt = insert(table).values()
-        set_ = {
-            column: attrgetter(column)(insert_stmt.excluded)
-            for column in set_
-        }
-        await session.execute(
-            insert_stmt.on_conflict_do_update(
-                index_elements=index_elements,
-                set_=set_
-            ),
-            values,
-        )
 
 
 async def _peek_items_to_process(session, count) -> list[tuple[int, str]]:
@@ -96,10 +81,10 @@ async def _process_items_raw_stage_dwh(session, items_keys):
         stage_list.append(stage)
         dwh_list.append(dwh)
 
-    await _upsert_many(session, stg_market_item_table, stage_list,
+    await upsert_many(session, stg_market_item_table, stage_list,
                        ["app_id", "market_hash_name"],
                        ["market_fee", "market_marketable_restriction", "market_tradable_restriction", "commodity", "icon_url"])
-    await _upsert_many(session, dwh_market_item_table, dwh_list,
+    await upsert_many(session, dwh_market_item_table, dwh_list,
                        ["app_id", "market_hash_name"],
                        ["market_fee", "market_marketable_restriction", "market_tradable_restriction", "commodity", "icon_url"])
 
@@ -128,18 +113,18 @@ async def _process_sell_history_raw_stage_dwh(session, items_keys):
         sell_history_dwh_list.append(sell_history_dwh)
         stats_stage_list.append(stats_stage)
         stats_dwh_list.append(stats_dwh)
-    await _upsert_many(session, stg_market_item_sell_history_table, sell_history_stage_list,
+    await upsert_many(session, stg_market_item_sell_history_table, sell_history_stage_list,
                        ["app_id", "market_hash_name"],
                        ["timestamp", "history"])
-    await _upsert_many(session, dwh_market_item_sell_history_table, sell_history_dwh_list,
+    await upsert_many(session, dwh_market_item_sell_history_table, sell_history_dwh_list,
                        ["app_id", "market_hash_name"],
                        ["timestamp", "history"])
-    await _upsert_many(session, stg_market_item_stats_table, stats_stage_list,
+    await upsert_many(session, stg_market_item_stats_table, stats_stage_list,
                        ["app_id", "market_hash_name"],
                        ["total_sold", "total_volume", "total_volume_steam_fee",
                         "total_volume_publisher_fee", "min_price", "max_price",
                         "first_sale_timestamp", "last_sale_timestamp"])
-    await _upsert_many(session, dwh_market_item_stats_table, stats_dwh_list,
+    await upsert_many(session, dwh_market_item_stats_table, stats_dwh_list,
                        ["app_id", "market_hash_name"],
                        ["total_sold", "total_volume", "total_volume_steam_fee",
                         "total_volume_publisher_fee", "min_price", "max_price",
@@ -164,10 +149,10 @@ async def _process_orders_raw_stage_dwh(session, items_keys):
         stage_list.append(stage)
         dwh_list.append(dwh)
 
-    await _upsert_many(session, stg_market_item_orders_table, stage_list,
+    await upsert_many(session, stg_market_item_orders_table, stage_list,
                        ["app_id", "market_hash_name"],
                        ["timestamp", "buy_orders", "sell_orders"])
-    await _upsert_many(session, dwh_market_item_orders_table, dwh_list,
+    await upsert_many(session, dwh_market_item_orders_table, dwh_list,
                        ["app_id", "market_hash_name"],
                        ["timestamp", "buy_orders", "sell_orders"])
 
@@ -182,10 +167,10 @@ async def _process_game_raw_stg_dwh(session):
         stage, dwh = process_game(GameRaw(**row))
         stage_list.append(stage)
         dwh_list.append(dwh)
-    await _upsert_many(session, stg_game_table, stage_list,
+    await upsert_many(session, stg_game_table, stage_list,
                        ["app_id"],
                        ["name", "icon_url", "is_publisher_valve"])
-    await _upsert_many(session, dwh_game_table, dwh_list,
+    await upsert_many(session, dwh_game_table, dwh_list,
                        ["app_id"],
                        ["name", "icon_url", "is_publisher_valve"])
 
