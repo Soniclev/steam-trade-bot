@@ -1,8 +1,12 @@
 from urllib.parse import urlparse
 
+from dotenv import load_dotenv
 from pydantic import BaseSettings
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
+
+
+load_dotenv()
 
 
 class SparkSettings(BaseSettings):

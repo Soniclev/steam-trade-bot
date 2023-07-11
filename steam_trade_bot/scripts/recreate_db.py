@@ -1,17 +1,13 @@
 import asyncio
 
 from dependency_injector.wiring import inject, Provide
-from sqlalchemy import insert
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import text
 from sqlalchemy.sql.ddl import CreateSchema
 
 from steam_trade_bot.containers import Container
 from steam_trade_bot.infrastructure.models.raw_market import market_metadata as raw_market_metadata
-from steam_trade_bot.infrastructure.models.stg_market import market_metadata as stg_market_metadata, game_table as stg_game_table, market_item_stats_table as stg_market_item_stats_table, app_stats_view_name as stg_app_stats_view_name , app_stats_view_select as stg_app_stats_view_select
+from steam_trade_bot.infrastructure.models.stg_market import market_metadata as stg_market_metadata, app_stats_view_name as stg_app_stats_view_name , app_stats_view_select as stg_app_stats_view_select
 from steam_trade_bot.infrastructure.models.dwh_market import market_metadata as dwh_market_metadata, app_stats_view_name as dwh_app_stats_view_name, app_stats_view_select as dwh_app_stats_view_select
-from steam_trade_bot.infrastructure.models import proxy_metadata
 from steam_trade_bot.infrastructure.models.raw_market import SCHEMA_NAME as RAW_SCHEMA_NAME
 from steam_trade_bot.infrastructure.models.stg_market import SCHEMA_NAME as STG_SCHEMA_NAME
 from steam_trade_bot.infrastructure.models.dwh_market import SCHEMA_NAME as DWH_SCHEMA_NAME
