@@ -24,7 +24,7 @@ def run_job(spark):
         .option("password", password) \
         .option("driver", "org.postgresql.Driver") \
         .load()
-    df2 = df.withColumn("history", regexp_replace(col("history"), '"', ""))
+    df2 = df.withColumn("history", regexp_replace(col("history"), '"', "")).repartition("market_hash_name")
     df3 = df2.withColumn('history',
                          from_json(col('history'), ArrayType(ArrayType(DecimalType(18, 2)))))
     df4 = df3.select('app_id', 'market_hash_name', 'timestamp',
@@ -36,13 +36,13 @@ def run_job(spark):
         to_timestamp(col('exploded_history')[0].cast('bigint')).alias("point_timestamp"),
         col("exploded_history")[1].alias("price"),
         col("exploded_history")[2].cast('integer').alias("sold_quantity")
-    ).repartition("market_hash_name")
-    df6 = df5.withColumn("point_timestamp",func.date_trunc("day", col("point_timestamp"))).groupBy("point_timestamp").agg(
+    )
+    df6 = df5.withColumn("point_timestamp", func.date_trunc("day", col("point_timestamp"))).groupBy("point_timestamp").agg(
         func.round(func.avg((col("price"))), 2).alias("daily_avg_price"),
         func.sum((col("price") * col("sold_quantity"))).alias("daily_volume"),
         func.sum(col("sold_quantity")).alias("daily_quantity"),
         func.approx_count_distinct("market_hash_name").alias("sold_unique_items"),
-    ).sort("point_timestamp", ascending=False).save()
+    ).sort("point_timestamp", ascending=False).cache()
     df6.write \
         .format("jdbc") \
         .option("url", jdbc_url) \

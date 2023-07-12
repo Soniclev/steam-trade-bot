@@ -39,7 +39,7 @@ export default function AppMarketItems(props) {
     axios.get(`${API_URL}/get_market_items/?app_id=${props.app_id}&count=100&offset=0`).then((response) => {
       setGames(response.data.items);
     });
-  }, []);
+  }, [props.app_id]);
 
   const columnHelper = createColumnHelper();
 

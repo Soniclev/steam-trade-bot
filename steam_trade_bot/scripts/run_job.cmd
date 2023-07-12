@@ -7,6 +7,8 @@ spark-submit ^
   --conf spark.sql.shuffle.partitions="30" ^
   --conf spark.sql.files.maxPartitionBytes="20971520" ^
   --conf spark.local.dir="C:\tmp\spark" ^
+  --conf spark.eventLog.enabled=true ^
+  --conf spark.eventLog.dir="C:\tmp\spark-logs" ^
   steam_trade_bot/etl/jobs/game_market_item/game_market_item_job.py
 
 spark-submit ^
@@ -18,4 +20,6 @@ spark-submit ^
   --conf spark.sql.shuffle.partitions="30" ^
   --conf spark.sql.files.maxPartitionBytes="20971520" ^
   --conf spark.local.dir="C:\tmp\spark" ^
+  --conf spark.eventLog.enabled=true ^
+  --conf spark.eventLog.dir="C:\tmp\spark-logs" ^
   steam_trade_bot/etl/jobs/entire_market_stats/entire_market_stats.py

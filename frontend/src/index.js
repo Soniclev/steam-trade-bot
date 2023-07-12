@@ -23,6 +23,7 @@ const AppMarketItemsWrapper = () => {
 
 const MarketItemWrapper = () => {
   const { app_id, market_hash_name } = useParams();
+  console.log("MarketItemWrapper")
   return <MarketItem app_id={app_id} market_hash_name={market_hash_name} />;
 };
 

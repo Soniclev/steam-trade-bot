@@ -13,6 +13,9 @@ from pyspark.sql import SparkSession
 # from steam_trade_bot.etl.spark_conf import create_spark_instance
 
 
+MARKET_ITEMS_PER_PARTITIONS = 1000
+
+
 def run_job(spark):
     jdbc_url, username, password = get_jdbc_creds()
     df = spark.read \
@@ -23,7 +26,7 @@ def run_job(spark):
         .option("password", password) \
         .option("driver", "org.postgresql.Driver") \
         .load()
-    app_id_market_name_df_partitions = max(1, round(df.count() / 1000))
+    app_id_market_name_df_partitions = max(1, round(df.count() / MARKET_ITEMS_PER_PARTITIONS))
     app_id_market_name_df = df.select("app_id", "market_hash_name").repartition(
         app_id_market_name_df_partitions).cache()
     app_id_df = df.select("app_id").distinct().repartition(1).cache()

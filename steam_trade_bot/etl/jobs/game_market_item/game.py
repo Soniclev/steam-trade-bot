@@ -44,6 +44,5 @@ async def process_game_batch(batch: list[AppIdKey]):
                     stage_list.append(stage)
                     dwh_list.append(dwh)
 
-            print(stage_list)
             await _upsert_many_by_app(session, stg_game_table, stage_list)
             await _upsert_many_by_app(session, dwh_game_table, dwh_list)
