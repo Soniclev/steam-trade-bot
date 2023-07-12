@@ -89,6 +89,16 @@ market_item_sell_history_table = Table(
     UniqueConstraint("app_id", "market_hash_name"),
 )
 
+entire_market_daily_stats = Table(
+    "entire_market_daily_stats",
+    market_metadata,
+    Column("point_timestamp", DateTime, nullable=False, primary_key=True),
+    Column("daily_avg_price", Numeric(precision=18, scale=2), nullable=False),
+    Column("daily_volume", Numeric(precision=18, scale=2), nullable=False),
+    Column("daily_quantity", BigInteger, nullable=False),
+    Column("sold_unique_items", BigInteger, nullable=False),
+)
+
 app_stats_view_name = "app_stats_view"
 app_stats_view_select = """SELECT 
 app_id,

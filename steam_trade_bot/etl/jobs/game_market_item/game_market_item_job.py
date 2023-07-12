@@ -4,10 +4,10 @@ load_dotenv(".env")  # take environment variables from .env.
 
 from steam_trade_bot.etl.settings import get_jdbc_creds
 from steam_trade_bot.etl.async_run import surround_async
-from steam_trade_bot.etl.processors.game import process_game_batch
-from steam_trade_bot.etl.processors.market_item import process_market_item_batch
-from steam_trade_bot.etl.processors.market_item import process_market_item_sell_history_batch
-from steam_trade_bot.etl.processors.market_item import process_market_item_orders_batch
+from steam_trade_bot.etl.jobs.game_market_item.game import process_game_batch
+from steam_trade_bot.etl.jobs.game_market_item.market_item import process_market_item_batch
+from steam_trade_bot.etl.jobs.game_market_item.market_item import process_market_item_sell_history_batch
+from steam_trade_bot.etl.jobs.game_market_item.market_item import process_market_item_orders_batch
 from pyspark.sql import SparkSession
 
 # from steam_trade_bot.etl.spark_conf import create_spark_instance

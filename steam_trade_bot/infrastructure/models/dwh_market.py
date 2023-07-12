@@ -87,6 +87,16 @@ market_item_sell_history_table = Table(
     UniqueConstraint("app_id", "market_hash_name"),
 )
 
+entire_market_daily_stats = Table(
+    "entire_market_daily_stats",
+    market_metadata,
+    Column("point_timestamp", DateTime, nullable=False, primary_key=True),
+    Column("daily_avg_price", Numeric(precision=18, scale=2), nullable=False),
+    Column("daily_volume", Numeric(precision=18, scale=2), nullable=False),
+    Column("daily_quantity", BigInteger, nullable=False),
+    Column("sold_unique_items", BigInteger, nullable=False),
+)
+
 #TODO: add view with top market_items by sold amount and volume ?
 # TODO: or create Spark job?
 # TODO: items similarity by ?, ?, ? parameters - the good choice for using Spark

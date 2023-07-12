@@ -16,7 +16,7 @@ class SparkSettings(BaseSettings):
 spark_settings = SparkSettings()
 engine = create_async_engine(spark_settings.database, pool_size=5, max_overflow=10)
 
-# TODO: make another function to create spark session
+
 def get_jdbc_creds() -> tuple[str, str, str]:
     parsed = urlparse(spark_settings.database)
     username = parsed.username

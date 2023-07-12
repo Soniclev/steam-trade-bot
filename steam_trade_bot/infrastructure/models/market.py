@@ -12,7 +12,7 @@ from sqlalchemy import (
     MetaData,
 )
 
-# TODO: remove currency field
+
 SCHEMA_NAME = "raw"
 market_metadata = MetaData(schema=SCHEMA_NAME)
 
