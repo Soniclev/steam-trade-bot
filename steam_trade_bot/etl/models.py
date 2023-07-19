@@ -37,6 +37,7 @@ class MarketItemRaw(TypedDict):
 
 
 class MarketItemStage(TypedDict):
+    partition: int
     app_id: int
     market_hash_name: str
     market_fee: float
@@ -57,6 +58,7 @@ class MarketItemSellHistoryRaw(TypedDict):
 
 
 class MarketItemSellHistoryStage(TypedDict):
+    partition: int
     app_id: int
     market_hash_name: str
     timestamp: datetime
@@ -68,6 +70,7 @@ class MarketItemSellHistoryDWH(MarketItemSellHistoryStage):
 
 
 class MarketItemStatsStage(TypedDict):
+    partition: int
     app_id: int
     market_hash_name: str
     total_sold: int
@@ -85,6 +88,7 @@ class MarketItemStatsDWH(MarketItemStatsStage):
 
 
 class MarketItemOrdersRaw(TypedDict):
+    partition: int
     app_id: int
     market_hash_name: str
     timestamp: datetime
@@ -92,6 +96,7 @@ class MarketItemOrdersRaw(TypedDict):
 
 
 class MarketItemOrdersStage(TypedDict):
+    partition: int
     app_id: int
     market_hash_name: str
     timestamp: datetime

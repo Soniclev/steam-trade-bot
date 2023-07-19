@@ -5,7 +5,6 @@ from sqlalchemy import (
     String,
     ForeignKey,
     Boolean,
-    ForeignKeyConstraint,
     UniqueConstraint,
     DateTime,
     Float,
@@ -30,6 +29,7 @@ game_table = Table(
 market_item_table = Table(
     "market_item",
     market_metadata,
+    Column("partition", Integer, nullable=False),
     Column(
         "app_id",
         Integer,
@@ -49,6 +49,7 @@ market_item_table = Table(
 market_item_stats_table = Table(
     "market_item_stats",
     market_metadata,
+    Column("partition", Integer, nullable=False),
     Column(
         "app_id",
         Integer,
@@ -71,6 +72,7 @@ market_item_stats_table = Table(
 market_item_orders_table = Table(
     "market_item_orders",
     market_metadata,
+    Column("partition", Integer, nullable=False),
     Column("app_id", Integer, nullable=False, primary_key=True),
     Column("market_hash_name", String, nullable=False, primary_key=True),
     Column("timestamp", DateTime(timezone=True), nullable=False),
@@ -82,6 +84,7 @@ market_item_orders_table = Table(
 market_item_sell_history_table = Table(
     "market_item_sell_history",
     market_metadata,
+    Column("partition", Integer, nullable=False),
     Column("app_id", Integer, nullable=False, primary_key=True),
     Column("market_hash_name", String, nullable=False, primary_key=True),
     Column("timestamp", DateTime(timezone=True), nullable=False),

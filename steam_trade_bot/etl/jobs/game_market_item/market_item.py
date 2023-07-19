@@ -1,6 +1,7 @@
 import functools
 import json
 
+from steam_trade_bot.consts import compute_partition
 from steam_trade_bot.database import upsert_many_by_index
 from steam_trade_bot.domain.fee_calculator import ComputedFee, compute_fee_from_total
 from steam_trade_bot.domain.services.orders_parser import parse_orders
@@ -116,8 +117,9 @@ def process_market_item(
         dict_["market_fee"] = round(float(dict_["market_fee"]), 2)
     else:
         dict_["market_fee"] = None
+    partition = compute_partition(obj["app_id"], obj["market_hash_name"])
     return (
-        MarketItemStage(**dict_),
+        MarketItemStage(partition=partition, **dict_),
         MarketItemDWH(**dict_)
     )
 
@@ -148,10 +150,11 @@ def process_market_item_sell_history(
     MarketItemSellHistoryStage, MarketItemSellHistoryDWH, MarketItemStatsStage, MarketItemStatsDWH]:
     processed_sell_history = extract_sell_history_from_row(obj)
     processed_stats = extract_sell_history_stats_from_row(obj)
+    partition = compute_partition(obj["app_id"], obj["market_hash_name"])
     return (
-        MarketItemSellHistoryStage(**processed_sell_history),
+        MarketItemSellHistoryStage(partition=partition, **processed_sell_history),
         MarketItemSellHistoryDWH(**processed_sell_history),
-        MarketItemStatsStage(**processed_stats),
+        MarketItemStatsStage(partition=partition, **processed_stats),
         MarketItemStatsDWH(**processed_stats),
     )
 
@@ -189,8 +192,9 @@ def process_market_item_orders(
         obj: MarketItemOrdersRaw
 ) -> tuple[MarketItemOrdersStage, MarketItemOrdersDWH]:
     processed = extract_orders_from_row(obj)
+    partition = compute_partition(obj["app_id"], obj["market_hash_name"])
     return (
-        MarketItemOrdersStage(**processed),
+        MarketItemOrdersStage(partition=partition, **processed),
         MarketItemOrdersDWH(**processed),
     )
 

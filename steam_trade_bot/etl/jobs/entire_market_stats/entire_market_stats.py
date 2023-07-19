@@ -16,6 +16,9 @@ from pyspark.sql.types import ArrayType, DecimalType
 
 def run_job(spark):
     jdbc_url, username, password = get_jdbc_creds()
+    num_partitions = 100
+    partition_column = "partition"
+
     df = spark.read \
         .format("jdbc") \
         .option("url", jdbc_url) \
@@ -23,8 +26,12 @@ def run_job(spark):
         .option("user", username) \
         .option("password", password) \
         .option("driver", "org.postgresql.Driver") \
+        .option("numPartitions", num_partitions) \
+        .option("partitionColumn", partition_column) \
+        .option("lowerBound", "0") \
+        .option("upperBound", str(num_partitions)) \
         .load()
-    df2 = df.withColumn("history", regexp_replace(col("history"), '"', "")).repartition("market_hash_name")
+    df2 = df.withColumn("history", regexp_replace(col("history"), '"', ""))
     df3 = df2.withColumn('history',
                          from_json(col('history'), ArrayType(ArrayType(DecimalType(18, 2)))))
     df4 = df3.select('app_id', 'market_hash_name', 'timestamp',
@@ -36,7 +43,7 @@ def run_job(spark):
         to_timestamp(col('exploded_history')[0].cast('bigint')).alias("point_timestamp"),
         col("exploded_history")[1].alias("price"),
         col("exploded_history")[2].cast('integer').alias("sold_quantity")
-    )
+    ).cache()
     df6 = df5.withColumn("point_timestamp", func.date_trunc("day", col("point_timestamp"))).groupBy("point_timestamp").agg(
         func.round(func.avg((col("price"))), 2).alias("daily_avg_price"),
         func.sum((col("price") * col("sold_quantity"))).alias("daily_volume"),
