@@ -93,13 +93,14 @@ entire_market_daily_stats = Table(
     Column("point_timestamp", DateTime, nullable=False, primary_key=True),
     Column("daily_avg_price", Numeric(precision=18, scale=2), nullable=False),
     Column("daily_volume", Numeric(precision=18, scale=2), nullable=False),
+    Column("daily_volume_no_fee", Numeric(precision=18, scale=2), nullable=False),
+    Column("daily_volume_game_fee", Numeric(precision=18, scale=2), nullable=False),
+    Column("daily_volume_steam_fee", Numeric(precision=18, scale=2), nullable=False),
     Column("daily_quantity", BigInteger, nullable=False),
     Column("sold_unique_items", BigInteger, nullable=False),
 )
 
-#TODO: add view with top market_items by sold amount and volume ?
-# TODO: or create Spark job?
-# TODO: items similarity by ?, ?, ? parameters - the good choice for using Spark
+
 app_stats_view_name = "app_stats_view"
 app_stats_view_select = """SELECT 
 app_id,

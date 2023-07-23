@@ -1,3 +1,5 @@
+import argparse
+
 from dotenv import load_dotenv
 
 from steam_trade_bot.infrastructure.models.stg_market import entire_market_daily_stats as stg_entire_market_daily_stats
@@ -11,7 +13,7 @@ from pyspark.sql.functions import from_json, col, regexp_replace, explode, to_ti
 import pyspark.sql.functions as func
 from pyspark.sql.types import ArrayType, DecimalType
 
-# from steam_trade_bot.etl.spark_conf import create_spark_instance
+from steam_trade_bot.etl.spark_conf import create_spark_instance
 
 
 def run_job(spark):
@@ -42,11 +44,17 @@ def run_job(spark):
         col("timestamp"),
         to_timestamp(col('exploded_history')[0].cast('bigint')).alias("point_timestamp"),
         col("exploded_history")[1].alias("price"),
-        col("exploded_history")[2].cast('integer').alias("sold_quantity")
+        col("exploded_history")[2].alias("price_no_fee"),
+        col("exploded_history")[3].alias("price_game_fee"),
+        col("exploded_history")[4].alias("price_steam_fee"),
+        col("exploded_history")[5].cast('integer').alias("sold_quantity")
     ).cache()
     df6 = df5.withColumn("point_timestamp", func.date_trunc("day", col("point_timestamp"))).groupBy("point_timestamp").agg(
         func.round(func.avg((col("price"))), 2).alias("daily_avg_price"),
         func.sum((col("price") * col("sold_quantity"))).alias("daily_volume"),
+        func.sum((col("price_no_fee") * col("sold_quantity"))).alias("daily_volume_no_fee"),
+        func.sum((col("price_game_fee") * col("sold_quantity"))).alias("daily_volume_game_fee"),
+        func.sum((col("price_steam_fee") * col("sold_quantity"))).alias("daily_volume_steam_fee"),
         func.sum(col("sold_quantity")).alias("daily_quantity"),
         func.approx_count_distinct("market_hash_name").alias("sold_unique_items"),
     ).sort("point_timestamp", ascending=False).cache()
@@ -73,4 +81,11 @@ def run_job(spark):
 
 
 if __name__ == '__main__':
-    run_job(SparkSession.builder.getOrCreate())
+    parser = argparse.ArgumentParser(description='PySpark job with an option to start a local Spark instance.')
+    parser.add_argument('--local', action='store_true', help='Use this flag to start a local Spark instance.')
+    args = parser.parse_args()
+    if args.local:
+        spark = create_spark_instance()
+    else:
+        spark = SparkSession.builder.getOrCreate()
+    run_job(spark)

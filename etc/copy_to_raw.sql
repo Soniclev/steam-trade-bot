@@ -21,7 +21,8 @@ where public.market_item_orders.app_id = 730 and market_hash_name like 'M4A1%';
 
 truncate raw.market_item_sell_history cascade;
 
-INSERT INTO raw.market_item_sell_history (app_id, market_hash_name, timestamp, history)
-SELECT app_id, market_hash_name, timestamp, history
-FROM public.market_item_sell_history
-where public.market_item_sell_history.app_id = 730 and market_hash_name like 'M4A1%';
+INSERT INTO raw.market_item_sell_history (app_id, market_hash_name, market_fee, timestamp, history)
+SELECT mish.app_id, mish.market_hash_name, mi.market_fee, timestamp, history
+FROM public.market_item_sell_history mish
+JOIN public.market_item mi ON mish.app_id = mi.app_id and mish.market_hash_name = mi.market_hash_name
+where mish.app_id = 730 and mish.market_hash_name like 'M4A1%';

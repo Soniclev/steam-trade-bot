@@ -82,6 +82,7 @@ market_item_sell_history_table = Table(
     market_metadata,
     Column("app_id", Integer, nullable=False, primary_key=True),
     Column("market_hash_name", String, nullable=False, primary_key=True),
+    Column("market_fee", String, nullable=True),
     Column("timestamp", DateTime(timezone=True), nullable=False),
     Column("history", String, nullable=False),
     UniqueConstraint("app_id", "market_hash_name"),

@@ -53,6 +53,7 @@ class MarketItemDWH(MarketItemStage):
 class MarketItemSellHistoryRaw(TypedDict):
     app_id: int
     market_hash_name: str
+    market_fee: str | None
     timestamp: datetime
     history: str
 

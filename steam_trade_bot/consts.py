@@ -2,6 +2,7 @@ import hashlib
 
 
 DEFAULT_CURRENCY = 1
+DEFAULT_GAME_FEE = 0.1
 
 
 def _compute_numeric_hash(app_id: int, market_hash_name: str) -> int:

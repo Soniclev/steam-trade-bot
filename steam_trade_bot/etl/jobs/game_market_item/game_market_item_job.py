@@ -1,3 +1,5 @@
+import argparse
+
 from dotenv import load_dotenv
 
 load_dotenv(".env")  # take environment variables from .env.
@@ -10,7 +12,7 @@ from steam_trade_bot.etl.jobs.game_market_item.market_item import process_market
 from steam_trade_bot.etl.jobs.game_market_item.market_item import process_market_item_orders_batch
 from pyspark.sql import SparkSession
 
-# from steam_trade_bot.etl.spark_conf import create_spark_instance
+from steam_trade_bot.etl.spark_conf import create_spark_instance
 
 
 MARKET_ITEMS_PER_PARTITIONS = 1000
@@ -30,6 +32,7 @@ def run_job(spark):
     app_id_market_name_df = df.select("app_id", "market_hash_name").repartition(
         app_id_market_name_df_partitions).cache()
     app_id_df = df.select("app_id").distinct().repartition(1).cache()
+    # TODO: bad pattern, hard to support
     app_id_df.foreachPartition(surround_async(process_game_batch))
     app_id_market_name_df.foreachPartition(surround_async(process_market_item_batch))
     app_id_market_name_df.foreachPartition(surround_async(process_market_item_sell_history_batch))
@@ -37,4 +40,11 @@ def run_job(spark):
 
 
 if __name__ == '__main__':
-    run_job(SparkSession.builder.getOrCreate())
+    parser = argparse.ArgumentParser(description='PySpark job with an option to start a local Spark instance.')
+    parser.add_argument('--local', action='store_true', help='Use this flag to start a local Spark instance.')
+    args = parser.parse_args()
+    if args.local:
+        spark = create_spark_instance()
+    else:
+        spark = SparkSession.builder.getOrCreate()
+    run_job(spark)

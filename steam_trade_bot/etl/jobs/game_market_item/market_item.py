@@ -1,7 +1,7 @@
 import functools
 import json
 
-from steam_trade_bot.consts import compute_partition
+from steam_trade_bot.consts import compute_partition, DEFAULT_GAME_FEE
 from steam_trade_bot.database import upsert_many_by_index
 from steam_trade_bot.domain.fee_calculator import ComputedFee, compute_fee_from_total
 from steam_trade_bot.domain.services.orders_parser import parse_orders
@@ -43,6 +43,7 @@ def _cached_compute_fee_from_total(total: float, game: float | None = None) -> C
 
 
 def extract_sell_history_stats_from_row(row):
+    market_fee = round(float(row["market_fee"] or DEFAULT_GAME_FEE), 2)
     history = json.loads(row["history"])
     points = []
     for item in history:
@@ -53,10 +54,10 @@ def extract_sell_history_stats_from_row(row):
     total_sold = sum(x[2] for x in points)
     total_volume = round(sum(x[1] * x[2] for x in points), 2)
     total_volume_steam_fee = round(
-        sum(_cached_compute_fee_from_total(x[1]).steam * x[2] for x in points),
+        sum(_cached_compute_fee_from_total(x[1], game=market_fee).steam * x[2] for x in points),
         2)
     total_volume_publisher_fee = round(
-        sum(_cached_compute_fee_from_total(x[1]).game * x[2] for x in points),
+        sum(_cached_compute_fee_from_total(x[1], game=market_fee).game * x[2] for x in points),
         2)
     first_sale_timestamp = points[0][0] if points else None
     last_sale_timestamp = points[-1][0] if points else None
@@ -79,13 +80,17 @@ def extract_sell_history_stats_from_row(row):
 
 
 def extract_sell_history_from_row(row):
+    market_fee = round(float(row["market_fee"] or DEFAULT_GAME_FEE), 2)
     history = json.loads(row["history"])
     points = []
     for item in history:
         timestamp = steam_date_str_to_datetime(item[0]).timestamp()
         price = round(item[1], 2)
+        price_no_fee = _cached_compute_fee_from_total(round(item[1], 2), game=market_fee).payload
+        price_game_fee = _cached_compute_fee_from_total(round(item[1], 2), game=market_fee).game
+        price_steam_fee = _cached_compute_fee_from_total(round(item[1], 2), game=market_fee).steam
         amount = int(item[2])
-        points.append((timestamp, price, amount))
+        points.append((timestamp, price, price_no_fee, price_game_fee, price_steam_fee, amount))
 
     json_history = json.dumps(points)
 
