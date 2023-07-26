@@ -11,6 +11,9 @@ export default function Root() {
               <Link to={``}>Main App</Link>
               </li>
               <li>
+              <Link to={`entire_market_daily_stats`}>Market daily stats</Link>
+              </li>
+              <li>
               <Link to={`apps`}>Market items</Link>
               </li>
             </ul>

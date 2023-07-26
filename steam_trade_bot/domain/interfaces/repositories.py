@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from datetime import datetime
 from typing import TypeVar, Generic
 
 from steam_trade_bot.domain.entities.market import (
@@ -8,7 +9,7 @@ from steam_trade_bot.domain.entities.market import (
     SellHistoryAnalyzeResult,
     MarketItemInfo,
     MarketItemNameId,
-    MarketItemOrders, MarketItemSellHistoryStats,
+    MarketItemOrders, MarketItemSellHistoryStats, EntireMarketDailyStats,
 )
 
 
@@ -78,6 +79,32 @@ class IGameRepository(ABC):
 
     @abstractmethod
     async def get_all(self, offset: int = None, count: int = None) -> list[Game]:
+        ...
+
+
+class IEntireMarketDailyStatsRepository(ABC):
+    @abstractmethod
+    async def add(self, rows: list[EntireMarketDailyStats]):
+        ...
+
+    @abstractmethod
+    async def add_or_update(self, rows: list[EntireMarketDailyStats]):
+        ...
+
+    @abstractmethod
+    async def add_or_ignore(self, rows: list[EntireMarketDailyStats]):
+        ...
+
+    @abstractmethod
+    async def remove(self, point_timestamp: datetime):
+        ...
+
+    @abstractmethod
+    async def get(self, point_timestamp: datetime) -> EntireMarketDailyStats | None:
+        ...
+
+    @abstractmethod
+    async def get_all(self, offset: int = None, count: int = None) -> list[EntireMarketDailyStats]:
         ...
 
 

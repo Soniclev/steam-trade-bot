@@ -16,7 +16,7 @@ from steam_trade_bot.domain.entities.market import (
     SellHistoryAnalyzeResult,
     MarketItemInfo,
     MarketItemNameId,
-    MarketItemOrders, MarketItemSellHistoryStats,
+    MarketItemOrders, MarketItemSellHistoryStats, EntireMarketDailyStats,
 )
 from steam_trade_bot.domain.interfaces.repositories import (
     IGameRepository,
@@ -26,6 +26,7 @@ from steam_trade_bot.domain.interfaces.repositories import (
     IMarketItemInfoRepository,
     IMarketItemNameIdRepository,
     IMarketItemOrdersRepository, IMarketItemSellHistoryStatsRepository,
+    IEntireMarketDailyStatsRepository,
 )
 from steam_trade_bot.infrastructure.models.market import (
     sell_history_analyze_result_table,
@@ -38,6 +39,7 @@ from steam_trade_bot.infrastructure.models.dwh_market import (
     market_item_sell_history_table,
     market_item_stats_table,
     market_item_orders_table,
+    entire_market_daily_stats_table,
 )
 
 T = TypeVar('T')
@@ -271,3 +273,40 @@ class SellHistoryAnalyzeResultRepository(AppMarketNameBasedRepository[SellHistor
         super(SellHistoryAnalyzeResultRepository, self).__init__(
             session, sell_history_analyze_result_table, SellHistoryAnalyzeResult
         )
+
+
+class EntireMarketDailyStatsRepository(BaseRepository[EntireMarketDailyStats], IEntireMarketDailyStatsRepository):
+    def __init__(self, session: AsyncSession, table=entire_market_daily_stats_table, type_=EntireMarketDailyStats):
+        super().__init__(session, table, type_, {"point_timestamp"})
+
+    async def remove(self, point_timestamp: int):
+        await super(EntireMarketDailyStatsRepository).remove(
+            delete(self._table).where(self._table.c.point_timestamp == point_timestamp)
+        )
+
+    async def get(self, point_timestamp: int) -> EntireMarketDailyStats | None:
+        return await super(EntireMarketDailyStatsRepository).get(
+            select(self._table).where(self._table.c.point_timestamp == point_timestamp)
+        )
+
+    async def yield_all_by_app_ids(self, point_timestamps: list[int], count: int) -> list[T]:
+        filter_conditions = []
+        for point_timestamp in point_timestamps:
+            filter_conditions.append(
+                (self._table.c.point_timestamp == point_timestamp)
+            )
+
+        stmt = select(self._table).where(or_(*filter_conditions))
+
+        async_result = await self._session.stream(stmt)
+
+        while rows := await async_result.fetchmany(count):
+            yield [self._type(**row) for row in rows]
+
+    async def get_all(self, offset: int = None, count: int = None) -> list[EntireMarketDailyStats]:
+        stmt = select(self._table).order_by(self._table.c.point_timestamp.asc())
+        if offset:
+            stmt = stmt.offset(offset)
+        if count:
+            stmt = stmt.limit(count)
+        return await super(EntireMarketDailyStatsRepository, self)._get_all(stmt)

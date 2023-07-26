@@ -3,7 +3,7 @@ import argparse
 from dotenv import load_dotenv
 
 from steam_trade_bot.infrastructure.models.stg_market import entire_market_daily_stats as stg_entire_market_daily_stats
-from steam_trade_bot.infrastructure.models.dwh_market import entire_market_daily_stats as dwh_entire_market_daily_stats
+from steam_trade_bot.infrastructure.models.dwh_market import entire_market_daily_stats_table as dwh_entire_market_daily_stats
 
 load_dotenv(".env")  # take environment variables from .env.
 

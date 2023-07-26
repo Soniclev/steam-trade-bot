@@ -33,7 +33,7 @@ def run_job(spark):
         app_id_market_name_df_partitions).cache()
     app_id_df = df.select("app_id").distinct().repartition(1).cache()
     # TODO: bad pattern, hard to support
-    app_id_df.foreachPartition(surround_async(process_game_batch))
+    # app_id_df.foreachPartition(surround_async(process_game_batch))
     app_id_market_name_df.foreachPartition(surround_async(process_market_item_batch))
     app_id_market_name_df.foreachPartition(surround_async(process_market_item_sell_history_batch))
     app_id_market_name_df.foreachPartition(surround_async(process_market_item_orders_batch))

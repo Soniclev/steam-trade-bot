@@ -1,8 +1,8 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import './index.css';
-import App from './App';
-import reportWebVitals from './reportWebVitals';
+import React from "react";
+import ReactDOM from "react-dom/client";
+import "./index.css";
+import App from "./App";
+import reportWebVitals from "./reportWebVitals";
 
 import {
   createBrowserRouter,
@@ -12,9 +12,10 @@ import {
 import Root from "./routes/root";
 import Apps from "./routes/apps";
 import AppMarketItems from "./routes/app_market_items";
-import MarketItem from './routes/market_item';
+import MarketItem from "./routes/market_item";
+import EntireMarketDailyStats from './routes/entire_market_stats';
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
+const root = ReactDOM.createRoot(document.getElementById("root"));
 
 const AppMarketItemsWrapper = () => {
   const { app_id } = useParams();
@@ -23,7 +24,7 @@ const AppMarketItemsWrapper = () => {
 
 const MarketItemWrapper = () => {
   const { app_id, market_hash_name } = useParams();
-  console.log("MarketItemWrapper")
+  console.log("MarketItemWrapper");
   return <MarketItem app_id={app_id} market_hash_name={market_hash_name} />;
 };
 
@@ -35,10 +36,16 @@ const router = createBrowserRouter([
       {
         path: "/",
         element: <App />,
-      },{
+      },
+      {
         path: "apps",
         element: <Apps />,
-      },{
+      },
+      {
+        path: "entire_market_daily_stats",
+        element: <EntireMarketDailyStats />,
+      },
+      {
         path: "apps/:app_id",
         element: <AppMarketItemsWrapper />,
       },

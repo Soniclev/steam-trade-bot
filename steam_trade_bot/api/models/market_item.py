@@ -12,4 +12,4 @@ class MarketItemSellHistoryResponse(BaseModel):
     total_volume_approx_fee: float
     first_sale_datetime: datetime | None
     last_sale_datetime: datetime | None
-    history: list[tuple[datetime, float, int]]
+    history: list[tuple[datetime, float, float, float, float, int]]

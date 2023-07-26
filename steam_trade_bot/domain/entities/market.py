@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from datetime import datetime
 
+from pydantic import BaseModel
+
 from steam_trade_bot.type import CurrencyValue
 
 
@@ -98,3 +100,14 @@ class SellHistoryAnalyzeResult:
     deviation: float | None
     sell_order: CurrencyValue | None
     sell_order_no_fee: CurrencyValue | None
+
+
+class EntireMarketDailyStats(BaseModel):
+    point_timestamp: datetime
+    daily_avg_price: float
+    daily_volume: float
+    daily_volume_no_fee: float
+    daily_volume_game_fee: float
+    daily_volume_steam_fee: float
+    daily_quantity: int
+    sold_unique_items: int

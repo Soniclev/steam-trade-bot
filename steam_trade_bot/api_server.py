@@ -1,9 +1,6 @@
 import dataclasses
 import json
-from dataclasses import asdict
-from datetime import timedelta, datetime
-from typing import Union, Callable
-import asyncio
+from datetime import datetime
 
 from fastapi import FastAPI, Depends, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,8 +11,7 @@ from pydantic import BaseModel
 from steam_trade_bot.api.models.market_item import MarketItemSellHistoryResponse
     # MarketItemHeatmapItem, MarketItemHeatmap, MarketItemWeeklyResponse
 from steam_trade_bot.containers import Container
-from steam_trade_bot.domain.entities.market import MarketItem, Game
-from steam_trade_bot.domain.services.sell_history_analyzer import steam_date_str_to_datetime
+from steam_trade_bot.domain.entities.market import EntireMarketDailyStats
 from steam_trade_bot.settings import BotSettings
 
 from steam_trade_bot.domain.interfaces.unit_of_work import IUnitOfWork
@@ -191,6 +187,19 @@ async def get_item_sell_history(
         last_sale_datetime=stats.last_sale_timestamp,
         history=json.loads(history.history),
     )
+
+
+@router.get("/get_entire_market_daily_stats/", response_model=list[EntireMarketDailyStats])
+@inject
+async def get_item_sell_history(
+        count: int | None = None,
+        offset: int | None= None,
+        uow: IUnitOfWork = Depends(Provide[Container.repositories.unit_of_work]),
+):
+    async with uow:
+        stats = await uow.entire_market_daily_stats.get_all(count=count, offset=offset)
+
+    return stats
 
 
 app.include_router(router)

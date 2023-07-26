@@ -87,7 +87,7 @@ market_item_sell_history_table = Table(
     UniqueConstraint("app_id", "market_hash_name"),
 )
 
-entire_market_daily_stats = Table(
+entire_market_daily_stats_table = Table(
     "entire_market_daily_stats",
     market_metadata,
     Column("point_timestamp", DateTime, nullable=False, primary_key=True),

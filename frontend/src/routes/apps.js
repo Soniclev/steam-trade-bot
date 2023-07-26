@@ -8,10 +8,8 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 
-const API_URL =
-  process.env.NODE_ENV === "production"
-    ? "https://example.com/api/v1"
-    : "http://localhost:8000/api/v1";
+import {API_URL} from "../api";
+
 
 export default function Apps() {
   const [games, setGames] = useState([]);
@@ -37,7 +35,7 @@ export default function Apps() {
         header: () => <span>Name</span>,
       }),
     ],
-    []
+    [columnHelper]
   );
 
   const data = React.useMemo(() => games, [games]);

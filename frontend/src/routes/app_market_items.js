@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { Link } from 'react-router-dom';
+import { Link } from "react-router-dom";
 import {
   createColumnHelper,
   flexRender,
@@ -8,37 +8,24 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 
-const API_URL =
-  process.env.NODE_ENV === "production"
-    ? "https://example.com/api/v1"
-    : "http://localhost:8000/api/v1";
-
-function formatTradableRestriction(value) {
-  if (value === -1)
-    return "🚫Not tradable (Sell only) ";
-  if (value === null)
-    return "✅No"
-  return `🔒${value} days`
-}
-
-function formatMarketableRestriction(value) {
-  if (value === null || value === 0)
-    return "✅No"
-  return `🔒${value} days`
-}
-
-function formatCommodity(value) {
-  return value ? "Yes" : "No"
-}
-
+import { API_URL } from "../api";
+import {
+  formatCommodity,
+  formatTradableRestriction,
+  formatMarketableRestriction,
+} from "./formats";
 
 export default function AppMarketItems(props) {
   const [games, setGames] = useState([]);
 
   useEffect(() => {
-    axios.get(`${API_URL}/get_market_items/?app_id=${props.app_id}&count=100&offset=0`).then((response) => {
-      setGames(response.data.items);
-    });
+    axios
+      .get(
+        `${API_URL}/get_market_items/?app_id=${props.app_id}&count=100&offset=0`
+      )
+      .then((response) => {
+        setGames(response.data.items);
+      });
   }, [props.app_id]);
 
   const columnHelper = createColumnHelper();
@@ -66,7 +53,7 @@ export default function AppMarketItems(props) {
         header: () => <span>Commodity</span>,
       }),
     ],
-    []
+    [columnHelper]
   );
 
   const data = React.useMemo(() => games, [games]);
@@ -115,7 +102,13 @@ export default function AppMarketItems(props) {
                   );
                 })}
                 <td>
-                  <Link to={`/apps/${props.app_id}/${row.getValue("market_hash_name")}`}>View</Link>
+                  <Link
+                    to={`/apps/${props.app_id}/${row.getValue(
+                      "market_hash_name"
+                    )}`}
+                  >
+                    View
+                  </Link>
                 </td>
               </tr>
             );
