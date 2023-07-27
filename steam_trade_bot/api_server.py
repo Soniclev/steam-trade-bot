@@ -1,6 +1,7 @@
 import dataclasses
 import json
 from datetime import datetime
+from typing import Literal
 
 from fastapi import FastAPI, Depends, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
@@ -189,15 +190,16 @@ async def get_item_sell_history(
     )
 
 
-@router.get("/get_entire_market_daily_stats/", response_model=list[EntireMarketDailyStats])
+@router.get("/get_entire_market_stats/", response_model=list[EntireMarketDailyStats])
 @inject
 async def get_item_sell_history(
+        mode: Literal["monthly", "weekly", "daily"] = "daily",
         count: int | None = None,
-        offset: int | None= None,
+        offset: int | None = None,
         uow: IUnitOfWork = Depends(Provide[Container.repositories.unit_of_work]),
 ):
     async with uow:
-        stats = await uow.entire_market_daily_stats.get_all(count=count, offset=offset)
+        stats = await uow.entire_market_daily_stats.get_all(mode=mode, count=count, offset=offset)
 
     return stats
 

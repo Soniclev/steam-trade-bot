@@ -1,7 +1,7 @@
 import operator
 from dataclasses import asdict
 from operator import attrgetter
-from typing import TypeVar, Generic
+from typing import TypeVar, Generic, Literal
 
 from steam_trade_bot.domain.exceptions import SerializationError
 from sqlalchemy import delete, select, Table, or_
@@ -39,7 +39,7 @@ from steam_trade_bot.infrastructure.models.dwh_market import (
     market_item_sell_history_table,
     market_item_stats_table,
     market_item_orders_table,
-    entire_market_daily_stats_table,
+    entire_market_stats_table,
 )
 
 T = TypeVar('T')
@@ -276,7 +276,7 @@ class SellHistoryAnalyzeResultRepository(AppMarketNameBasedRepository[SellHistor
 
 
 class EntireMarketDailyStatsRepository(BaseRepository[EntireMarketDailyStats], IEntireMarketDailyStatsRepository):
-    def __init__(self, session: AsyncSession, table=entire_market_daily_stats_table, type_=EntireMarketDailyStats):
+    def __init__(self, session: AsyncSession, table=entire_market_stats_table, type_=EntireMarketDailyStats):
         super().__init__(session, table, type_, {"point_timestamp"})
 
     async def remove(self, point_timestamp: int):
@@ -303,8 +303,8 @@ class EntireMarketDailyStatsRepository(BaseRepository[EntireMarketDailyStats], I
         while rows := await async_result.fetchmany(count):
             yield [self._type(**row) for row in rows]
 
-    async def get_all(self, offset: int = None, count: int = None) -> list[EntireMarketDailyStats]:
-        stmt = select(self._table).order_by(self._table.c.point_timestamp.asc())
+    async def get_all(self, mode: Literal["monthly", "weekly", "daily"] = "daily", offset: int = None, count: int = None) -> list[EntireMarketDailyStats]:
+        stmt = select(self._table).where(self._table.c.mode == mode).order_by(self._table.c.point_timestamp.asc())
         if offset:
             stmt = stmt.offset(offset)
         if count:

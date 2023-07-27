@@ -2,8 +2,8 @@ import argparse
 
 from dotenv import load_dotenv
 
-from steam_trade_bot.infrastructure.models.stg_market import entire_market_daily_stats as stg_entire_market_daily_stats
-from steam_trade_bot.infrastructure.models.dwh_market import entire_market_daily_stats_table as dwh_entire_market_daily_stats
+from steam_trade_bot.infrastructure.models.stg_market import entire_market_stats_table as stg_entire_market_stats
+from steam_trade_bot.infrastructure.models.dwh_market import entire_market_stats_table as dwh_entire_market_stats
 
 load_dotenv(".env")  # take environment variables from .env.
 
@@ -49,31 +49,57 @@ def run_job(spark):
         col("exploded_history")[4].alias("price_steam_fee"),
         col("exploded_history")[5].cast('integer').alias("sold_quantity")
     ).cache()
-    df6 = df5.withColumn("point_timestamp", func.date_trunc("day", col("point_timestamp"))).groupBy("point_timestamp").agg(
-        func.round(func.avg((col("price"))), 2).alias("daily_avg_price"),
-        func.sum((col("price") * col("sold_quantity"))).alias("daily_volume"),
-        func.sum((col("price_no_fee") * col("sold_quantity"))).alias("daily_volume_no_fee"),
-        func.sum((col("price_game_fee") * col("sold_quantity"))).alias("daily_volume_game_fee"),
-        func.sum((col("price_steam_fee") * col("sold_quantity"))).alias("daily_volume_steam_fee"),
-        func.sum(col("sold_quantity")).alias("daily_quantity"),
+    daily_df = df5.withColumn("point_timestamp", func.date_trunc("day", col("point_timestamp"))).groupBy("point_timestamp").agg(
+        func.round(func.avg((col("price"))), 2).alias("avg_price"),
+        func.sum((col("price") * col("sold_quantity"))).alias("volume"),
+        func.sum((col("price_no_fee") * col("sold_quantity"))).alias("volume_no_fee"),
+        func.sum((col("price_game_fee") * col("sold_quantity"))).alias("volume_game_fee"),
+        func.sum((col("price_steam_fee") * col("sold_quantity"))).alias("volume_steam_fee"),
+        func.sum(col("sold_quantity")).alias("quantity"),
         func.approx_count_distinct("market_hash_name").alias("sold_unique_items"),
     ).sort("point_timestamp", ascending=False).cache()
-    df6.write \
+    weekly_df = df5.withColumn("point_timestamp",
+                              func.date_trunc("week", col("point_timestamp"))).groupBy(
+        "point_timestamp").agg(
+        func.round(func.avg((col("price"))), 2).alias("avg_price"),
+        func.sum((col("price") * col("sold_quantity"))).alias("volume"),
+        func.sum((col("price_no_fee") * col("sold_quantity"))).alias("volume_no_fee"),
+        func.sum((col("price_game_fee") * col("sold_quantity"))).alias("volume_game_fee"),
+        func.sum((col("price_steam_fee") * col("sold_quantity"))).alias("volume_steam_fee"),
+        func.sum(col("sold_quantity")).alias("quantity"),
+        func.approx_count_distinct("market_hash_name").alias("sold_unique_items"),
+    ).sort("point_timestamp", ascending=False).cache()
+    monthly_df = df5.withColumn("point_timestamp",
+                               func.date_trunc("month", col("point_timestamp"))).groupBy(
+        "point_timestamp").agg(
+        func.round(func.avg((col("price"))), 2).alias("avg_price"),
+        func.sum((col("price") * col("sold_quantity"))).alias("volume"),
+        func.sum((col("price_no_fee") * col("sold_quantity"))).alias("volume_no_fee"),
+        func.sum((col("price_game_fee") * col("sold_quantity"))).alias("volume_game_fee"),
+        func.sum((col("price_steam_fee") * col("sold_quantity"))).alias("volume_steam_fee"),
+        func.sum(col("sold_quantity")).alias("quantity"),
+        func.approx_count_distinct("market_hash_name").alias("sold_unique_items"),
+    ).sort("point_timestamp", ascending=False).cache()
+
+    result_df = daily_df.withColumn("mode", func.lit("daily")).union(weekly_df.withColumn("mode", func.lit("weekly"))).union(monthly_df.withColumn("mode", func.lit("monthly")))
+    result_df.write \
         .format("jdbc") \
         .option("url", jdbc_url) \
-        .option("dbtable", f"{stg_entire_market_daily_stats}") \
+        .option("dbtable", f"{stg_entire_market_stats}") \
         .option("user", username) \
         .option("password", password) \
+        .option("stringtype", "unspecified") \
         .option("driver", "org.postgresql.Driver") \
         .mode("overwrite") \
         .option("truncate", True) \
         .save()
-    df6.write \
+    result_df.write \
         .format("jdbc") \
         .option("url", jdbc_url) \
-        .option("dbtable", f"{dwh_entire_market_daily_stats}") \
+        .option("dbtable", f"{dwh_entire_market_stats}") \
         .option("user", username) \
         .option("password", password) \
+        .option("stringtype", "unspecified") \
         .option("driver", "org.postgresql.Driver") \
         .mode("overwrite") \
         .option("truncate", True) \

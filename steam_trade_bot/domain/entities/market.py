@@ -104,10 +104,10 @@ class SellHistoryAnalyzeResult:
 
 class EntireMarketDailyStats(BaseModel):
     point_timestamp: datetime
-    daily_avg_price: float
-    daily_volume: float
-    daily_volume_no_fee: float
-    daily_volume_game_fee: float
-    daily_volume_steam_fee: float
-    daily_quantity: int
+    avg_price: float
+    volume: float
+    volume_no_fee: float
+    volume_game_fee: float
+    volume_steam_fee: float
+    quantity: int
     sold_unique_items: int

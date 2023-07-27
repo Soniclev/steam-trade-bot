@@ -11,8 +11,11 @@ from sqlalchemy import (
     MetaData,
     Numeric,
     BigInteger,
+    Enum
 )
 from sqlalchemy.dialects.postgresql import JSONB
+
+from steam_trade_bot.infrastructure.models.common import ModeEnum
 
 SCHEMA_NAME = "stg_market"
 market_metadata = MetaData(schema=SCHEMA_NAME)
@@ -92,18 +95,20 @@ market_item_sell_history_table = Table(
     UniqueConstraint("app_id", "market_hash_name"),
 )
 
-entire_market_daily_stats = Table(
-    "entire_market_daily_stats",
+entire_market_stats_table = Table(
+    "entire_market_stats",
     market_metadata,
+    Column("mode", Enum(ModeEnum), nullable=False, primary_key=True, default=ModeEnum.monthly),
     Column("point_timestamp", DateTime, nullable=False, primary_key=True),
-    Column("daily_avg_price", Numeric(precision=18, scale=2), nullable=False),
-    Column("daily_volume", Numeric(precision=18, scale=2), nullable=False),
-    Column("daily_volume_no_fee", Numeric(precision=18, scale=2), nullable=False),
-    Column("daily_volume_game_fee", Numeric(precision=18, scale=2), nullable=False),
-    Column("daily_volume_steam_fee", Numeric(precision=18, scale=2), nullable=False),
-    Column("daily_quantity", BigInteger, nullable=False),
+    Column("avg_price", Numeric(precision=18, scale=2), nullable=False),
+    Column("volume", Numeric(precision=18, scale=2), nullable=False),
+    Column("volume_no_fee", Numeric(precision=18, scale=2), nullable=False),
+    Column("volume_game_fee", Numeric(precision=18, scale=2), nullable=False),
+    Column("volume_steam_fee", Numeric(precision=18, scale=2), nullable=False),
+    Column("quantity", BigInteger, nullable=False),
     Column("sold_unique_items", BigInteger, nullable=False),
 )
+
 
 app_stats_view_name = "app_stats_view"
 app_stats_view_select = """SELECT 

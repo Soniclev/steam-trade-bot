@@ -42,7 +42,7 @@ const router = createBrowserRouter([
         element: <Apps />,
       },
       {
-        path: "entire_market_daily_stats",
+        path: "entire_market_stats",
         element: <EntireMarketDailyStats />,
       },
       {

@@ -14,14 +14,21 @@ import {
 import { API_URL } from "../api";
 import { formatPrice, formatPcs } from "./formats";
 
-export default function EntireMarketDailyStats(props) {
+export default function EntireMarketStats(props) {
   const [stats, setStats] = useState([]);
+  const [selectedMode, setSelectedMode] = useState("monthly");
 
   useEffect(() => {
-    axios.get(`${API_URL}/get_entire_market_daily_stats/`).then((response) => {
-      setStats(response.data);
-    });
-  }, []);
+    axios
+      .get(`${API_URL}/get_entire_market_stats/?mode=${selectedMode}`)
+      .then((response) => {
+        setStats(response.data);
+      });
+  }, [selectedMode]);
+
+  const handleModeChange = (mode) => {
+    setSelectedMode(mode);
+  };
 
   const columnHelper = createColumnHelper();
 
@@ -32,25 +39,25 @@ export default function EntireMarketDailyStats(props) {
         cell: (info) => moment(info.getValue()).format("DD.MM.YYYY"),
         header: () => <span>Date</span>,
       }),
-      columnHelper.accessor((row) => row.daily_avg_price, {
-        id: "daily_avg_price",
+      columnHelper.accessor((row) => row.avg_price, {
+        id: "avg_price",
         cell: (info) => formatPrice(info.getValue()),
-        header: () => <span>Daily Average Price</span>,
+        header: () => <span>Average Price</span>,
       }),
-      columnHelper.accessor((row) => row.daily_volume, {
-        id: "daily_volume",
+      columnHelper.accessor((row) => row.volume, {
+        id: "volume",
         cell: (info) => formatPrice(info.getValue()),
-        header: () => <span>Daily Volume</span>,
+        header: () => <span>Volume</span>,
       }),
-      columnHelper.accessor((row) => row.daily_quantity, {
-        id: "daily_quantity",
+      columnHelper.accessor((row) => row.quantity, {
+        id: "quantity",
         cell: (info) => formatPcs(info.getValue()),
-        header: () => <span>Daily sold quantity</span>,
+        header: () => <span>Sold quantity</span>,
       }),
       columnHelper.accessor((row) => row.sold_unique_items, {
         id: "sold_unique_items",
         cell: (info) => info.getValue(),
-        header: () => <span>Daily sold unique items</span>,
+        header: () => <span>Sold unique items</span>,
       }),
     ],
     [columnHelper]
@@ -92,12 +99,12 @@ export default function EntireMarketDailyStats(props) {
     dataset: {
       dimensions: [
         "point_timestamp",
-        "daily_avg_price",
-        "daily_volume",
-        "daily_volume_no_fee",
-        "daily_volume_game_fee",
-        "daily_volume_steam_fee",
-        "daily_quantity",
+        "avg_price",
+        "volume",
+        "volume_no_fee",
+        "volume_game_fee",
+        "volume_steam_fee",
+        "quantity",
         "sold_unique_items",
       ],
       source: data,
@@ -137,7 +144,7 @@ export default function EntireMarketDailyStats(props) {
     ],
     series: [
       {
-        name: "Daily volume",
+        name: "Volume",
         type: "line",
         symbol: "none",
         sampling: "average",
@@ -146,11 +153,11 @@ export default function EntireMarketDailyStats(props) {
         },
         encode: {
           x: "point_timestamp",
-          y: "daily_volume",
+          y: "volume",
         },
       },
       {
-        name: "Daily average price",
+        name: "Average price",
         type: "line",
         symbol: "none",
         sampling: "average",
@@ -159,11 +166,11 @@ export default function EntireMarketDailyStats(props) {
         },
         encode: {
           x: "point_timestamp",
-          y: "daily_avg_price",
+          y: "avg_price",
         },
       },
       {
-        name: "Daily sold items",
+        name: "Sold items",
         type: "line",
         symbol: "none",
         sampling: "average",
@@ -173,11 +180,11 @@ export default function EntireMarketDailyStats(props) {
         },
         encode: {
           x: "point_timestamp",
-          y: "daily_quantity",
+          y: "quantity",
         },
       },
       {
-        name: "Daily sold unique items",
+        name: "Sold unique items",
         type: "line",
         symbol: "none",
         sampling: "average",
@@ -195,7 +202,13 @@ export default function EntireMarketDailyStats(props) {
 
   return (
     <div className="market-items-container">
-      <h1>Global market daily stats</h1>
+      <h1>Global market {selectedMode} stats</h1>
+      <div>
+        <h2>Selected Mode: {selectedMode}</h2>
+        <button onClick={() => handleModeChange("monthly")}>Monthly</button>
+        <button onClick={() => handleModeChange("weekly")}>Weekly</button>
+        <button onClick={() => handleModeChange("daily")}>Daily</button>
+      </div>
       <div style={{ width: "1000px", height: "500px" }}>
         <ReactECharts option={option} style={{ height: 500 }} />
       </div>
@@ -208,22 +221,24 @@ export default function EntireMarketDailyStats(props) {
                 return (
                   <th key={header.id} colSpan={header.colSpan}>
                     {header.isPlaceholder ? null : (
-                      <div
-                        {...{
-                          className: header.column.getCanSort()
-                            ? "cursor-pointer select-none"
-                            : "",
-                          onClick: header.column.getToggleSortingHandler(),
-                        }}
-                      >
-                        {flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
-                        {{
-                          asc: " 🔼",
-                          desc: " 🔽",
-                        }[header.column.getIsSorted()] ?? null}
+                      <div>
+                        <div
+                          {...{
+                            className: header.column.getCanSort()
+                              ? "cursor-pointer select-none"
+                              : "",
+                            onClick: header.column.getToggleSortingHandler(),
+                          }}
+                        >
+                          {flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
+                          {{
+                            asc: " 🔼",
+                            desc: " 🔽",
+                          }[header.column.getIsSorted()] ?? null}
+                        </div>
                         {header.column.getCanFilter() ? (
                           <div>
                             <Filter column={header.column} table={table} />

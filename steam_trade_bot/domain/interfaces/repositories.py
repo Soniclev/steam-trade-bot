@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import TypeVar, Generic
+from typing import TypeVar, Generic, Literal
 
 from steam_trade_bot.domain.entities.market import (
     Game,
@@ -104,7 +104,7 @@ class IEntireMarketDailyStatsRepository(ABC):
         ...
 
     @abstractmethod
-    async def get_all(self, offset: int = None, count: int = None) -> list[EntireMarketDailyStats]:
+    async def get_all(self, mode: Literal["monthly", "weekly", "daily"] = "daily", offset: int = None, count: int = None) -> list[EntireMarketDailyStats]:
         ...
 
 
