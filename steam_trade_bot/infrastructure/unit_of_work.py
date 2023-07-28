@@ -11,7 +11,9 @@ from steam_trade_bot.infrastructure.repositories import (
     MarketItemRepository,
     MarketItemNameIdRepository,
     MarketItemOrdersRepository,
-    MarketItemSellHistoryStatsRepository, EntireMarketDailyStatsRepository,
+    MarketItemSellHistoryStatsRepository,
+    EntireMarketDailyStatsRepository,
+    AppStatsRepository,
 )
 
 
@@ -31,6 +33,7 @@ class UnitOfWork(IUnitOfWork):
         self.sell_history_stats = MarketItemSellHistoryStatsRepository(self._session)
         self.sell_history_analyze_result = SellHistoryAnalyzeResultRepository(self._session)
         self.entire_market_daily_stats = EntireMarketDailyStatsRepository(self._session)
+        self.app_stats = AppStatsRepository(self._session)
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):

@@ -18,12 +18,12 @@ from steam_trade_bot.domain.exceptions import SerializationError
 from steam_trade_bot.domain.entities.market import (
     MarketItem,
     MarketItemSellHistory,
-    Game,
     MarketItemInfo,
     MarketItemNameId,
     MarketItemOrder,
     MarketItemOrders,
 )
+from steam_trade_bot.domain.entities.game import Game
 from steam_trade_bot.domain.exceptions import CurrencyNotSupported, ItemNameIdNotFound
 from steam_trade_bot.domain.interfaces.session import (
     AbstractSteamSession,

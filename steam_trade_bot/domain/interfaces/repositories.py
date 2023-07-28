@@ -3,7 +3,6 @@ from datetime import datetime
 from typing import TypeVar, Generic, Literal
 
 from steam_trade_bot.domain.entities.market import (
-    Game,
     MarketItem,
     MarketItemSellHistory,
     SellHistoryAnalyzeResult,
@@ -11,7 +10,7 @@ from steam_trade_bot.domain.entities.market import (
     MarketItemNameId,
     MarketItemOrders, MarketItemSellHistoryStats, EntireMarketDailyStats,
 )
-
+from steam_trade_bot.domain.entities.game import Game, GameStatsResponse
 
 T = TypeVar('T')
 
@@ -79,6 +78,16 @@ class IGameRepository(ABC):
 
     @abstractmethod
     async def get_all(self, offset: int = None, count: int = None) -> list[Game]:
+        ...
+
+
+class IAppStatsRepository(ABC):
+    @abstractmethod
+    async def get(self, app_id: int) -> GameStatsResponse | None:
+        ...
+
+    @abstractmethod
+    async def get_all(self, offset: int = None, count: int = None) -> list[GameStatsResponse]:
         ...
 
 

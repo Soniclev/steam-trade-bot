@@ -1,21 +1,12 @@
-from dataclasses import dataclass
+import json
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 
 from steam_trade_bot.type import CurrencyValue
 
 
-@dataclass
-class Game:
-    app_id: int
-    name: str
-    icon_url: str
-    is_publisher_valve: bool
-
-
-@dataclass
-class MarketItem:
+class MarketItem(BaseModel):
     app_id: int
     market_hash_name: str
     market_fee: str | None
@@ -28,8 +19,7 @@ class MarketItem:
         return self.market_tradable_restriction != -1  # -1 means not tradable at all
 
 
-@dataclass
-class MarketItemInfo:
+class MarketItemInfo(BaseModel):
     app_id: int
     market_hash_name: str
     sell_listings: int
@@ -37,47 +27,41 @@ class MarketItemInfo:
     sell_price_no_fee: CurrencyValue | None
 
 
-@dataclass
-class MarketItemOrders:
+class MarketItemOrders(BaseModel):
     app_id: int
     market_hash_name: str
     timestamp: datetime
-    # dump: str
     buy_orders: list[tuple[float, int]]
     sell_orders: list[tuple[float, int]]
-    # buy_count: int | None
-    # buy_order: CurrencyValue | None
-    # sell_count: int | None
-    # sell_order: CurrencyValue | None
-    # sell_order_no_fee: CurrencyValue | None
+
+    @validator('buy_orders', 'sell_orders', pre=True)
+    def split_str(cls, v):
+        if isinstance(v, str):
+            v = json.loads(v)
+        return v
 
 
-@dataclass
-class MarketItemOrder:
+class MarketItemOrder(BaseModel):
     price: CurrencyValue
     quantity: int
 
 
-@dataclass
-class MarketItemNameId:
+class MarketItemNameId(BaseModel):
     app_id: int
     market_hash_name: str
     item_name_id: int
 
 
-@dataclass
-class MarketItemSellHistory:
+class MarketItemSellHistory(BaseModel):
     app_id: int
     market_hash_name: str
     timestamp: datetime
     history: str
 
 
-@dataclass
-class MarketItemSellHistoryStats:
+class MarketItemSellHistoryStats(BaseModel):
     app_id: int
     market_hash_name: str
-    # timestamp: datetime
     total_sold: str
     total_volume: str
     total_volume_steam_fee: str
@@ -88,8 +72,7 @@ class MarketItemSellHistoryStats:
     last_sale_timestamp: datetime | None
 
 
-@dataclass
-class SellHistoryAnalyzeResult:
+class SellHistoryAnalyzeResult(BaseModel):
     app_id: int
     market_hash_name: str
     timestamp: datetime

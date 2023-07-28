@@ -1,5 +1,4 @@
 import random
-from dataclasses import asdict
 from datetime import timedelta
 from typing import Callable
 
@@ -22,7 +21,7 @@ class ProxyRepository(IProxyRepository):
 
     async def add(self, proxy: Proxy):
         async with self._session() as session:
-            await session.execute(insert(proxy_table).values(asdict(proxy)))
+            await session.execute(insert(proxy_table).values(proxy.dict()))
             await session.commit()
 
     async def remove(self, proxy: Proxy):

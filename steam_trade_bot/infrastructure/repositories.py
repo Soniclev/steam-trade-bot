@@ -1,5 +1,5 @@
 import operator
-from dataclasses import asdict
+from datetime import datetime
 from operator import attrgetter
 from typing import TypeVar, Generic, Literal
 
@@ -10,7 +10,6 @@ from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from steam_trade_bot.domain.entities.market import (
-    Game,
     MarketItem,
     MarketItemSellHistory,
     SellHistoryAnalyzeResult,
@@ -18,6 +17,7 @@ from steam_trade_bot.domain.entities.market import (
     MarketItemNameId,
     MarketItemOrders, MarketItemSellHistoryStats, EntireMarketDailyStats,
 )
+from steam_trade_bot.domain.entities.game import Game, GameStatsResponse
 from steam_trade_bot.domain.interfaces.repositories import (
     IGameRepository,
     IMarketItemRepository,
@@ -26,7 +26,7 @@ from steam_trade_bot.domain.interfaces.repositories import (
     IMarketItemInfoRepository,
     IMarketItemNameIdRepository,
     IMarketItemOrdersRepository, IMarketItemSellHistoryStatsRepository,
-    IEntireMarketDailyStatsRepository,
+    IEntireMarketDailyStatsRepository, IAppStatsRepository,
 )
 from steam_trade_bot.infrastructure.models.market import (
     sell_history_analyze_result_table,
@@ -40,6 +40,7 @@ from steam_trade_bot.infrastructure.models.dwh_market import (
     market_item_stats_table,
     market_item_orders_table,
     entire_market_stats_table,
+    app_market_stats_table,
 )
 
 T = TypeVar('T')
@@ -65,7 +66,7 @@ class BaseRepository(Generic[T]):
     async def add(self, items: list[T]):
         try:
             stmt = insert(self._table) \
-                .values([asdict(item) for item in items])
+                .values([item.dict() for item in items])
             await self._session.execute(stmt)
         except DBAPIError as exc:
             if "<class 'asyncpg.exceptions.SerializationError'>: could not serialize access due to concurrent update" in \
@@ -76,7 +77,7 @@ class BaseRepository(Generic[T]):
     async def add_or_update(self, items: list[T]):
         try:
             stmt = insert(self._table) \
-                .values([asdict(item) for item in items])
+                .values([item.dict() for item in items])
             set_ = {
                 key: value(stmt.excluded)
                 for key, value in self._conflict_update_set.items()
@@ -95,7 +96,7 @@ class BaseRepository(Generic[T]):
     async def add_or_ignore(self, items: list[T]):
         try:
             stmt = insert(self._table) \
-                .values([asdict(item) for item in items])
+                .values([item.dict() for item in items])
             stmt = stmt.on_conflict_do_nothing(
                 constraint=self._table.primary_key
             )
@@ -275,33 +276,37 @@ class SellHistoryAnalyzeResultRepository(AppMarketNameBasedRepository[SellHistor
         )
 
 
+class AppStatsRepository(BaseRepository[GameStatsResponse], IAppStatsRepository):
+    def __init__(self, session: AsyncSession, table=app_market_stats_table, type_=GameStatsResponse):
+        super().__init__(session, table, type_, {"app_id"})
+
+    async def get(self, app_id: int) -> GameStatsResponse | None:
+        return await super(EntireMarketDailyStatsRepository).get(
+            select(self._table).where(self._table.c.app_id == app_id)
+        )
+
+    async def get_all(self, offset: int = None, count: int = None) -> list[GameStatsResponse]:
+        stmt = select(self._table)
+        if offset:
+            stmt = stmt.offset(offset)
+        if count:
+            stmt = stmt.limit(count)
+        return await super(AppStatsRepository, self)._get_all(stmt)
+
+
 class EntireMarketDailyStatsRepository(BaseRepository[EntireMarketDailyStats], IEntireMarketDailyStatsRepository):
     def __init__(self, session: AsyncSession, table=entire_market_stats_table, type_=EntireMarketDailyStats):
         super().__init__(session, table, type_, {"point_timestamp"})
 
-    async def remove(self, point_timestamp: int):
+    async def remove(self, point_timestamp: datetime):
         await super(EntireMarketDailyStatsRepository).remove(
             delete(self._table).where(self._table.c.point_timestamp == point_timestamp)
         )
 
-    async def get(self, point_timestamp: int) -> EntireMarketDailyStats | None:
+    async def get(self, point_timestamp: datetime) -> EntireMarketDailyStats | None:
         return await super(EntireMarketDailyStatsRepository).get(
             select(self._table).where(self._table.c.point_timestamp == point_timestamp)
         )
-
-    async def yield_all_by_app_ids(self, point_timestamps: list[int], count: int) -> list[T]:
-        filter_conditions = []
-        for point_timestamp in point_timestamps:
-            filter_conditions.append(
-                (self._table.c.point_timestamp == point_timestamp)
-            )
-
-        stmt = select(self._table).where(or_(*filter_conditions))
-
-        async_result = await self._session.stream(stmt)
-
-        while rows := await async_result.fetchmany(count):
-            yield [self._type(**row) for row in rows]
 
     async def get_all(self, mode: Literal["monthly", "weekly", "daily"] = "daily", offset: int = None, count: int = None) -> list[EntireMarketDailyStats]:
         stmt = select(self._table).where(self._table.c.mode == mode).order_by(self._table.c.point_timestamp.asc())

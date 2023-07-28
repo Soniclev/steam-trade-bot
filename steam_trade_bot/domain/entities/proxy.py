@@ -1,6 +1,7 @@
-from dataclasses import dataclass
 from enum import Enum
 import urllib.parse
+
+from pydantic import BaseModel
 
 
 class ProxyProtocolEnum(Enum):
@@ -9,8 +10,7 @@ class ProxyProtocolEnum(Enum):
     SOCKS5 = "SOCKS5"
 
 
-@dataclass(frozen=True)
-class Proxy:
+class Proxy(BaseModel):
     protocol: ProxyProtocolEnum
     host: str
     port: int

@@ -8,7 +8,7 @@ from steam_trade_bot.domain.interfaces.repositories import (
     ISellHistoryAnalyzeResultRepository,
     IMarketItemNameIdRepository,
     IMarketItemOrdersRepository, IMarketItemSellHistoryStatsRepository,
-    IEntireMarketDailyStatsRepository,
+    IEntireMarketDailyStatsRepository, IAppStatsRepository,
 )
 
 
@@ -22,6 +22,7 @@ class IUnitOfWork(ABC):
     sell_history_stats: IMarketItemSellHistoryStatsRepository
     sell_history_analyze_result: ISellHistoryAnalyzeResultRepository
     entire_market_daily_stats: IEntireMarketDailyStatsRepository
+    app_stats: IAppStatsRepository
 
     @abstractmethod
     async def __aenter__(self):

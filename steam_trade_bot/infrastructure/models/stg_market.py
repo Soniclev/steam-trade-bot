@@ -110,17 +110,33 @@ entire_market_stats_table = Table(
 )
 
 
-app_stats_view_name = "app_stats_view"
-app_stats_view_select = """SELECT 
-app_id,
-COUNT(1) as items_amount,
-SUM(total_sold) AS total_sold, 
-SUM(total_volume) AS total_volume, 
-SUM(total_volume_steam_fee) AS total_volume_steam_fee, 
-SUM(total_volume_publisher_fee) AS total_volume_publisher_fee,
-MIN(min_price) AS min_price,
-MAX(max_price) AS max_price,
-MIN(first_sale_timestamp) AS first_sale_timestamp,
-MAX(last_sale_timestamp) AS last_sale_timestamp
-FROM stg_market.market_item_stats
-GROUP BY app_id;"""
+app_market_stats_table = Table(
+    "app_market_stats",
+    market_metadata,
+    Column("app_id", Integer, nullable=False, primary_key=True),
+    Column("avg_price", Numeric(precision=18, scale=2), nullable=False),
+    Column("volume", Numeric(precision=18, scale=2), nullable=False),
+    Column("volume_no_fee", Numeric(precision=18, scale=2), nullable=False),
+    Column("volume_game_fee", Numeric(precision=18, scale=2), nullable=False),
+    Column("volume_steam_fee", Numeric(precision=18, scale=2), nullable=False),
+    Column("quantity", BigInteger, nullable=False),
+    Column("items_amount", BigInteger, nullable=False),
+    Column("min_price", Numeric(precision=18, scale=2), nullable=True),
+    Column("max_price", Numeric(precision=18, scale=2), nullable=True),
+)
+
+
+# app_stats_view_name = "app_stats_view"
+# app_stats_view_select = """SELECT
+# app_id,
+# COUNT(1) as items_amount,
+# SUM(total_sold) AS total_sold,
+# SUM(total_volume) AS total_volume,
+# SUM(total_volume_steam_fee) AS total_volume_steam_fee,
+# SUM(total_volume_publisher_fee) AS total_volume_publisher_fee,
+# MIN(min_price) AS min_price,
+# MAX(max_price) AS max_price,
+# MIN(first_sale_timestamp) AS first_sale_timestamp,
+# MAX(last_sale_timestamp) AS last_sale_timestamp
+# FROM stg_market.market_item_stats
+# GROUP BY app_id;"""

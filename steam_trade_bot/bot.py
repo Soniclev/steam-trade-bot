@@ -10,7 +10,8 @@ from sqlalchemy.orm import sessionmaker
 
 from steam_trade_bot.consts import DEFAULT_CURRENCY
 from steam_trade_bot.containers import Container
-from steam_trade_bot.domain.entities.market import Game, MarketItem
+from steam_trade_bot.domain.entities.market import MarketItem
+from steam_trade_bot.domain.entities.game import Game
 from steam_trade_bot.domain.services.export_yaml import ExportYaml
 from steam_trade_bot.domain.services.market_item_importer import (
     MarketItemImporterFromSearch,
