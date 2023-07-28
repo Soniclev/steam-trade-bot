@@ -63,10 +63,10 @@ export default function EntireMarketStats(props) {
     [columnHelper]
   );
 
-  const data = React.useMemo(() => stats, [stats]);
+  const data = React.useMemo(() => (stats.items ? stats.items : []), [stats]);
 
   const table = useReactTable({
-    data,
+    data: data,
     columns,
     // Pipeline
     getCoreRowModel: getCoreRowModel(),
@@ -85,7 +85,7 @@ export default function EntireMarketStats(props) {
     },
     title: {
       left: "left",
-      text: "Price history",
+      text: "Global market history",
     },
     toolbox: {
       feature: {
@@ -212,7 +212,15 @@ export default function EntireMarketStats(props) {
       <div style={{ width: "1000px", height: "500px" }}>
         <ReactECharts option={option} style={{ height: 500 }} />
       </div>
-
+      <hr/>
+      <p>
+        <i>Total sold</i>: {formatPcs(stats.total_quantity)}<br/>
+        <i>Total sold volume</i>: {formatPrice(stats.total_volume)}<br/>
+        <i>Total volume games fee</i>:{" "}
+        {formatPrice(stats.total_volume_game_fee)}<br/>
+        <i>Total volume Steam fee</i>:{" "}
+        {formatPrice(stats.total_volume_steam_fee)}
+      </p>
       <table>
         <thead>
           {table.getHeaderGroups().map((headerGroup) => (
@@ -333,9 +341,9 @@ export default function EntireMarketStats(props) {
             ))}
           </select>
         </div>
-        <div>{table.getRowModel().rows.length} Rows</div>
-        <pre>{JSON.stringify(table.getState().pagination, null, 2)}</pre>
-        <pre>{JSON.stringify(table.getState().sorting, null, 2)}</pre>
+        {/* <div>{table.getRowModel().rows.length} Rows</div> */}
+        {/* <pre>{JSON.stringify(table.getState().pagination, null, 2)}</pre>
+        <pre>{JSON.stringify(table.getState().sorting, null, 2)}</pre> */}
       </table>
     </div>
   );

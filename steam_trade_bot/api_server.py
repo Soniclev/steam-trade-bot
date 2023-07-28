@@ -9,8 +9,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from dependency_injector.wiring import Provide, inject
 from pydantic import BaseModel
 
-from steam_trade_bot.api.models.market_item import MarketItemSellHistoryResponse
-    # MarketItemHeatmapItem, MarketItemHeatmap, MarketItemWeeklyResponse
+from steam_trade_bot.api.models.market_item import MarketItemSellHistoryResponse, \
+    EntireMarketStatsResponse
+# MarketItemHeatmapItem, MarketItemHeatmap, MarketItemWeeklyResponse
 from steam_trade_bot.containers import Container
 from steam_trade_bot.domain.entities.market import EntireMarketDailyStats
 from steam_trade_bot.settings import BotSettings
@@ -183,14 +184,14 @@ async def get_item_sell_history(
         timestamp=history.timestamp,
         total_sold=stats.total_sold,
         total_volume=stats.total_volume,
-        total_volume_approx_fee=round(float(stats.total_volume)*0.13, 2),
+        total_volume_approx_fee=round(float(stats.total_volume) * 0.13, 2),
         first_sale_datetime=stats.first_sale_timestamp,
         last_sale_datetime=stats.last_sale_timestamp,
         history=json.loads(history.history),
     )
 
 
-@router.get("/get_entire_market_stats/", response_model=list[EntireMarketDailyStats])
+@router.get("/get_entire_market_stats/", response_model=EntireMarketStatsResponse)
 @inject
 async def get_item_sell_history(
         mode: Literal["monthly", "weekly", "daily"] = "daily",
@@ -200,8 +201,14 @@ async def get_item_sell_history(
 ):
     async with uow:
         stats = await uow.entire_market_daily_stats.get_all(mode=mode, count=count, offset=offset)
-
-    return stats
+    return EntireMarketStatsResponse(
+        total_volume=round(sum(x.volume for x in stats), 2),
+        total_volume_no_fee=round(sum(x.volume_no_fee for x in stats), 2),
+        total_volume_game_fee=round(sum(x.volume_game_fee for x in stats), 2),
+        total_volume_steam_fee=round(sum(x.volume_steam_fee for x in stats), 2),
+        total_quantity=round(sum(x.quantity for x in stats), 2),
+        items=stats
+    )
 
 
 app.include_router(router)
